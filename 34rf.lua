@@ -1374,12 +1374,14 @@ function Library:dropdown(options)
 		Name = "Dropdown",
 		StartingText = "Select...",
 		Items = {},
+		MultiSelect = false,
 		Callback = function(item) return end
 	}, options)
 
 
 	local newSize = 0
 	local open = false
+	local selectedItems = {}
 
 	local dropdownContainer = self.container:object("TextButton", {
 		Theme = {BackgroundColor3 = "Secondary"},
@@ -1426,7 +1428,8 @@ function Library:dropdown(options)
 		Position = UDim2.new(1, -50, 0, 16),
 		Size = UDim2.fromOffset(200, 20),
 		TextSize = 14,
-		Text = options.StartingText
+		Text = options.StartingText,
+		TextTruncate = Enum.TextTruncate.AtEnd
 	}):round(5):stroke("Tertiary")
 
 	local itemContainer = dropdownContainer:object("Frame", {
@@ -1512,10 +1515,37 @@ function Library:dropdown(options)
 			end)
 
 			newItem.MouseButton1Click:connect(function()
-				toggle()
-				selectedText.Text = newItem.Text
-				selectedText:tween{Size = UDim2.fromOffset(selectedText.TextBounds.X + 20, 20), Length = 0.05}
-				options.Callback(value)
+				if options.MultiSelect then
+					local isSelected = selectedItems[value]
+					if isSelected then
+						selectedItems[value] = nil
+						newItem:tween{BackgroundColor3 = self:lighten(Library.CurrentTheme.Secondary, 25)}
+					else
+						selectedItems[value] = label
+						newItem:tween{BackgroundColor3 = Library.CurrentTheme.Tertiary}
+					end
+					local displayText = ""
+					local count = 0
+					for _, name in pairs(selectedItems) do
+						count = count + 1
+						if displayText == "" then
+							displayText = name
+						else
+							displayText = displayText .. ", " .. name
+						end
+					end
+					if displayText == "" then
+						displayText = options.StartingText
+					end
+					selectedText.Text = displayText
+					selectedText:tween{Size = UDim2.fromOffset(math.min(selectedText.TextBounds.X + 20, 200), 20), Length = 0.05}
+					options.Callback(selectedItems)
+				else
+					toggle()
+					selectedText.Text = newItem.Text
+					selectedText:tween{Size = UDim2.fromOffset(selectedText.TextBounds.X + 20, 20), Length = 0.05}
+					options.Callback(value)
+				end
 			end)
 		end
 	end
@@ -1666,10 +1696,37 @@ function Library:dropdown(options)
 				end)
 
 				newItem.MouseButton1Click:connect(function()
-					toggle()
-					selectedText.Text = newItem.Text
-					selectedText:tween{Size = UDim2.fromOffset(selectedText.TextBounds.X + 20, 20), Length = 0.05}
-					options.Callback(value)
+					if options.MultiSelect then
+						local isSelected = selectedItems[value]
+						if isSelected then
+							selectedItems[value] = nil
+							newItem:tween{BackgroundColor3 = Library:lighten(Library.CurrentTheme.Secondary, 25)}
+						else
+							selectedItems[value] = label
+							newItem:tween{BackgroundColor3 = Library.CurrentTheme.Tertiary}
+						end
+						local displayText = ""
+						local count = 0
+						for _, name in pairs(selectedItems) do
+							count = count + 1
+							if displayText == "" then
+								displayText = name
+							else
+								displayText = displayText .. ", " .. name
+							end
+						end
+						if displayText == "" then
+							displayText = options.StartingText
+						end
+						selectedText.Text = displayText
+						selectedText:tween{Size = UDim2.fromOffset(math.min(selectedText.TextBounds.X + 20, 200), 20), Length = 0.05}
+						options.Callback(selectedItems)
+					else
+						toggle()
+						selectedText.Text = newItem.Text
+						selectedText:tween{Size = UDim2.fromOffset(selectedText.TextBounds.X + 20, 20), Length = 0.05}
+						options.Callback(value)
+					end
 				end)
 			end		
 		end
