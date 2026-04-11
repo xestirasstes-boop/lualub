@@ -50,27 +50,9 @@ local Library = {
 			StrongText = Color3.fromHSV(0, 0, 1),        
 			WeakText = Color3.fromHSV(0, 0, 172/255)
 		},
-Vaporwave = {
-    Main = Color3.fromRGB(26, 0, 51),
-    Secondary = Color3.fromRGB(50, 0, 80),
-    Tertiary = Color3.fromRGB(255, 113, 206),
-    StrongText = Color3.fromRGB(255, 220, 255),
-    WeakText = Color3.fromRGB(180, 130, 200)
-},
-OperaGX = {
-    Main = Color3.fromRGB(18, 18, 18),
-    Secondary = Color3.fromRGB(28, 28, 28),
-    Tertiary = Color3.fromRGB(255, 0, 60),
-    StrongText = Color3.fromRGB(240, 240, 240),
-    WeakText = Color3.fromRGB(150, 150, 150)
-},
-VisualStudio = {
-    Main = Color3.fromRGB(30, 30, 30),
-    Secondary = Color3.fromRGB(37, 37, 38),
-    Tertiary = Color3.fromRGB(0, 122, 204),
-    StrongText = Color3.fromRGB(212, 212, 212),
-    WeakText = Color3.fromRGB(130, 130, 130)
-},
+		Vaporwave = {},
+		OperaGX = {},
+		VisualStudio = {}
 	},
 	ColorPickerStyles = {
 		Legacy = 0,
@@ -296,7 +278,7 @@ function Library:object(class, properties)
 
 		methods.MouseEnter:connect(function()
 			hovered = true
-			task.wait(0.2)
+			wait(0.2)
 			if hovered then
 				tooltipContainer:tween{BackgroundTransparency = 0.2, TextTransparency = 0.2}
 				tooltipArrow:tween{ImageTransparency = 0.2}
@@ -367,11 +349,11 @@ function Library:show(state)
 			rawset(self.mainFrame, "oldSize", (state and self.mainFrame.oldSize) or self.mainFrame.Size)
 			self.mainFrame.ClipsDescendants = false
 		end)
-		task.wait(0.15)
+		wait(0.15)
 		self.mainFrame:fade(not state, self.mainFrame.BackgroundColor3, 0.15)
 	else		
 		self.mainFrame:fade(not state, self.mainFrame.BackgroundColor3, 0.15)
-		task.wait(0.1)
+		wait(0.1)
 		self.mainFrame:tween{Size = UDim2.new(), Length = 0.25}
 	end
 end
@@ -421,20 +403,11 @@ function Library:create(options)
 			writefile("MercurySettings.json", HTTPService:JSONEncode(settings))
 		end
 		settings = HTTPService:JSONDecode(readfile("MercurySettings.json"))
-Library.CurrentTheme = Library.Themes[settings.Theme]
-updateSettings = function(property, value)
-    settings[property] = value
-    writefile("MercurySettings.json", HTTPService:JSONEncode(settings))
-end
-local savedStates = settings.States or {}
-local function saveState(key, value)
-    if not readfile or not writefile then return end
-    savedStates[key] = value
-    settings.States = savedStates
-    writefile("MercurySettings.json", HTTPService:JSONEncode(settings))
-end
-Library._saveState = saveState
-Library._savedStates = savedStates
+		Library.CurrentTheme = Library.Themes[settings.Theme]
+		updateSettings = function(property, value)
+			settings[property] = value
+			writefile("MercurySettings.json", HTTPService:JSONEncode(settings))
+		end
 	end
 
 	options = self:set_defaults({
@@ -505,7 +478,7 @@ Library._savedStates = savedStates
 				local Input = core.InputBegan:connect(function(Key)
 					if Key.UserInputType == Enum.UserInputType.MouseButton1 then
 						local ObjectPosition = Vector2.new(Mouse.X - core.AbsolutePosition.X, Mouse.Y - core.AbsolutePosition.Y)
-						while RunService.RenderStepped:Wait() and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) do
+						while RunService.RenderStepped:wait() and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) do
 
 							if Library.LockDragging then
 								local FrameX, FrameY = math.clamp(Mouse.X - ObjectPosition.X, 0, gui.AbsoluteSize.X - core.AbsoluteSize.X), math.clamp(Mouse.Y - ObjectPosition.Y, 0, gui.AbsoluteSize.Y - core.AbsoluteSize.Y)
@@ -588,7 +561,7 @@ Library._savedStates = savedStates
 	local function closeUI()
 		core.ClipsDescendants = true
 		core:fade(true)
-		task.wait(0.1)
+		wait(0.1)
 		core:tween({Size = UDim2.new()}, function()
 			gui.AbsoluteObject:Destroy()
 		end)
@@ -1217,7 +1190,7 @@ function Library:tab(options)
 			tabButton.Visible = false
 			tab.Visible = false
 			tabButton.Parent = self.nilFolder.AbsoluteObject
-			task.wait()
+			wait()
 		end)
 
 		local visible = {}
@@ -1333,18 +1306,15 @@ function Library:toggle(options)
 		})
 	end
 
-local function toggle()
-    toggled = not toggled
-    if toggled then
-        offIcon:crossfade(onIcon, 0.1)
-    else
-        onIcon:crossfade(offIcon, 0.1)
-    end
-    options.Callback(toggled)
-    if Library._saveState and options.Name then
-        Library._saveState(options.Name, toggled)
-    end
-end
+	local function toggle()
+		toggled = not toggled
+		if toggled then
+			offIcon:crossfade(onIcon, 0.1)
+		else
+			onIcon:crossfade(offIcon, 0.1)
+		end
+		options.Callback(toggled)
+	end
 
 	do
 		local hovered = false
@@ -1384,24 +1354,20 @@ end
 		toggle()
 	end
 
-function methods:SetState(state)
-    toggled = state
-    if toggled then
-        offIcon:crossfade(onIcon, 0.1)
-    else
-        onIcon:crossfade(offIcon, 0.1)
-    end
-    task.spawn(function() options.Callback(toggled) end)
+	function methods:SetState(state)
+		toggled = state
+		if toggled then
+			offIcon:crossfade(onIcon, 0.1)
+		else
+			onIcon:crossfade(offIcon, 0.1)
+		end
+		task.spawn(function() options.Callback(toggled) end)
+	end
+
+	if options.StartingState then methods:SetState(true) end
+
+	return methods
 end
-
-function methods:GetValue()
-    return toggled
-end
-
-if options.StartingState then methods:SetState(true) end
-
-return methods
-end  -- закрывает Library:toggle
 
 function Library:dropdown(options)
 	options = self:set_defaults({
@@ -1609,14 +1575,10 @@ function Library:dropdown(options)
 
 	local methods = {}
 
-function methods:Set(text)
-    selectedText.Text = text
-    selectedText:tween{Size = UDim2.fromOffset(selectedText.TextBounds.X + 20, 20), Length = 0.05}
-end
-
-function methods:GetValue()
-    return selectedText.Text
-end
+	function methods:Set(text)
+		selectedText.Text = text
+		selectedText:tween{Size = UDim2.fromOffset(selectedText.TextBounds.X + 20, 20), Length = 0.05}
+	end
 
 	function methods:RemoveItems(fitems)
 		for _, v in next, fitems do
@@ -1934,7 +1896,7 @@ function Library:color_picker(options)
 		buttonContainer.MouseButton1Click:connect(function()
 			if Library._colorPickerExists then return end
 			Library._colorPickerExists = true
-			local hue, sat, val = 0, 1, 1
+			local hue, sat, val;
 			local updatePicker, updateHue;
 
 			local fadeOut;
@@ -2224,7 +2186,7 @@ function Library:color_picker(options)
 
 						pickerArea.MouseButton1Down:Connect(function()
 							down = true
-							while RunService.RenderStepped:Wait() and down do
+							while RunService.RenderStepped:wait() and down do
 								updatePicker()
 							end
 						end)
@@ -2593,7 +2555,7 @@ function Library:color_picker(options)
 
 						pickerArea.MouseButton1Down:Connect(function()
 							down = true
-							while RunService.RenderStepped:Wait() and down do
+							while RunService.RenderStepped:wait() and down do
 								updatePicker()
 							end
 						end)
@@ -2930,35 +2892,23 @@ function Library:keybind(options)
 			end
 		end)
 
-UserInputService.InputBegan:Connect(function(key, gameProcessed)
-    if listening and not UserInputService:GetFocusedTextBox() then
-        local isMouse = key.UserInputType == Enum.UserInputType.MouseButton1
-                     or key.UserInputType == Enum.UserInputType.MouseButton2
-                     or key.UserInputType == Enum.UserInputType.MouseButton3
+		UserInputService.InputBegan:Connect(function(key, gameProcessed)
+			if listening and not UserInputService:GetFocusedTextBox() then
+				if key.UserInputType == Enum.UserInputType.Keyboard then
+					if key.KeyCode ~= Enum.KeyCode.Escape then
+						options.Keybind = key.KeyCode
+					end
+					keybindDisplay.Text = (options.Keybind and tostring(options.Keybind.Name):upper()) or "?"
+					keybindDisplay:tween{Size = UDim2.fromOffset(keybindDisplay.TextBounds.X + 20, 20), Length = 0.05}
+					listening = false
+				end
+			else
+				if key.KeyCode == options.Keybind then
+					options.Callback()
+				end
+			end
+		end)
 
-        if key.UserInputType == Enum.UserInputType.Keyboard or isMouse then
-            if key.KeyCode ~= Enum.KeyCode.Escape then
-                if isMouse then
-                    options.Keybind = nil
-                    options._mouseButton = key.UserInputType
-                    keybindDisplay.Text = tostring(key.UserInputType.Name):upper()
-                else
-                    options.Keybind = key.KeyCode
-                    options._mouseButton = nil
-                    keybindDisplay.Text = tostring(key.KeyCode.Name):upper()
-                end
-            end
-            keybindDisplay:tween{Size = UDim2.fromOffset(keybindDisplay.TextBounds.X + 20, 20), Length = 0.05}
-            listening = false
-        end
-    else
-        local triggered = (options._mouseButton and key.UserInputType == options._mouseButton)
-                       or (options.Keybind and key.KeyCode == options.Keybind)
-        if triggered then
-            options.Callback()
-        end
-    end
-end)
 		keybindContainer.MouseButton1Click:connect(function()
 			if not listening then listening = true; keybindDisplay.Text = "..." end
 		end)
@@ -2967,17 +2917,13 @@ end)
 
 	local methods = {}
 
-function methods:Set(keycode)
-    options.Keybind = keycode
-    keybindDisplay.Text = (options.Keybind and tostring(options.Keybind.Name):upper()) or "?"
-    keybindDisplay:tween{Size = UDim2.fromOffset(keybindDisplay.TextBounds.X + 20, 20), Length = 0.05}
-end
+	function methods:Set(keycode)
+		options.Keybind = keycode
+		keybindDisplay.Text = (options.Keybind and tostring(options.Keybind.Name):upper()) or "?"
+		keybindDisplay:tween{Size = UDim2.fromOffset(keybindDisplay.TextBounds.X + 20, 20), Length = 0.05}
+	end
 
-function methods:GetValue()
-    return options.Keybind
-end
-
-return methods
+	return methods
 end
 
 function Library:prompt(options)
@@ -3242,7 +3188,7 @@ function Library:slider(options)
 			sliderContainer:tween{BackgroundColor3 = self:lighten(Library.CurrentTheme.Secondary, 20)}
 			down = true
 			local tween = valueText:tween{Size = UDim2.fromOffset(valueText.TextBounds.X + 20, 20)}
-			while RunService.RenderStepped:Wait() and down do
+			while RunService.RenderStepped:wait() and down do
 				local percentage = math.clamp((Mouse.X - sliderBar.AbsolutePosition.X) / (sliderBar.AbsoluteSize.X), 0, 1)
 				local value = ((options.Max - options.Min) * percentage) + options.Min
 				value = math.floor(value)
@@ -3262,19 +3208,11 @@ function Library:slider(options)
 
 	local methods = {}
 
-function methods:Set(value)
-    sliderLine:tween{Size = UDim2.fromScale(((value - options.Min) / (options.Max - options.Min)), 1)}
-end
+	function methods:Set(value)
+		sliderLine:tween{Size = UDim2.fromScale(((value - options.Min) / (options.Max - options.Min)), 1)}
+	end
 
-function methods:GetValue()
-    return tonumber(valueText.Text)
-end
-
-if Library._savedStates and options.Name and Library._savedStates[options.Name] ~= nil then
-    task.defer(function() methods:Set(Library._savedStates[options.Name]) end)
-end
-
-return methods
+	return methods
 end
 
 function Library:textbox(options)
@@ -3357,7 +3295,7 @@ function Library:textbox(options)
 
 		textBox.Focused:connect(function()
 			focused = true
-			while focused and RunService.RenderStepped:Wait() do
+			while focused and RunService.RenderStepped:wait() do
 				textBox.AbsoluteObject:TweenSize(
 					UDim2.fromOffset(math.clamp(textBox.TextBounds.X + 20, 0, 0.5 * textboxContainer.AbsoluteSize.X), 20),
 					Enum.EasingDirection.InOut,
@@ -3378,28 +3316,17 @@ function Library:textbox(options)
 				true
 			)
 			options.Callback(textBox.Text)
-			if Library._saveState and options.Name then
-				Library._saveState(options.Name, textBox.Text)
-			end
 		end)
 	end
 	self:_resize_tab()
 
 	local methods = {}
 
-function methods:Set(text)
-    textBox.Text = text
-end
+	function methods:Set(text)
+		textBox.Text = text
+	end
 
-function methods:GetValue()
-    return textBox.Text
-end
-
-if Library._savedStates and options.Name and Library._savedStates[options.Name] ~= nil then
-    task.defer(function() methods:Set(Library._savedStates[options.Name]) end)
-end
-
-return methods
+	return methods
 end
 
 function Library:label(options)
@@ -3449,169 +3376,6 @@ function Library:label(options)
 	end
 
 	return methods
-end
-
-
-function Library:progressbar(options)
-	options = self:set_defaults({
-		Name = "Progress",
-		Value = 0,
-		Description = nil,
-	}, options)
-
-	local barContainer = self.container:object("Frame", {
-		Theme = {BackgroundColor3 = "Secondary"},
-		Size = UDim2.new(1, -20, 0, 52)
-	}):round(7)
-
-	local text = barContainer:object("TextLabel", {
-		BackgroundTransparency = 1,
-		Position = UDim2.fromOffset(10, (options.Description and 5) or 0),
-		Size = (options.Description and UDim2.new(0.5, -10, 0, 22)) or UDim2.new(0.5, -10, 1, 0),
-		Text = options.Name,
-		TextSize = 22,
-		Theme = {TextColor3 = "StrongText"},
-		TextXAlignment = Enum.TextXAlignment.Left
-	})
-
-	if options.Description then
-		barContainer:object("TextLabel", {
-			BackgroundTransparency = 1,
-			Position = UDim2.fromOffset(10, 27),
-			Size = UDim2.new(0.5, -10, 0, 20),
-			Text = options.Description,
-			TextSize = 18,
-			Theme = {TextColor3 = "WeakText"},
-			TextXAlignment = Enum.TextXAlignment.Left
-		})
-	end
-
-	local valueLabel = barContainer:object("TextLabel", {
-		AnchorPoint = Vector2.new(1, 0),
-		BackgroundTransparency = 1,
-		Position = UDim2.new(1, -10, 0, 10),
-		Size = UDim2.fromOffset(50, 20),
-		TextSize = 12,
-		Theme = {TextColor3 = "WeakText"},
-		Text = options.Value .. "%"
-	})
-
-	local track = barContainer:object("Frame", {
-		Theme = {BackgroundColor3 = {"Secondary", -20}},
-		AnchorPoint = Vector2.new(0.5, 1),
-		Size = UDim2.new(1, -20, 0, 5),
-		Position = UDim2.new(0.5, 0, 1, -12)
-	}):round(100)
-
-	local fill = track:object("Frame", {
-		Size = UDim2.fromScale(math.clamp(options.Value / 100, 0, 1), 1),
-		Theme = {BackgroundColor3 = "Tertiary"}
-	}):round(100)
-
-	self:_resize_tab()
-
-	local methods = {}
-
-	function methods:Set(value)
-		value = math.clamp(value, 0, 100)
-		valueLabel.Text = value .. "%"
-		fill:tween{Size = UDim2.fromScale(value / 100, 1)}
-	end
-
-	function methods:GetValue()
-		return tonumber(valueLabel.Text:sub(1, -2))
-	end
-
-	return methods
-end
-
-
-function Library:accordion(options)
-	options = self:set_defaults({
-		Name = "Section",
-		Open = false,
-	}, options)
-
-	local open = options.Open
-
-	local wrapper = self.container:object("Frame", {
-		Theme = {BackgroundColor3 = "Secondary"},
-		Size = UDim2.new(1, -20, 0, 36),
-		ClipsDescendants = true
-	}):round(7)
-
-	local header = wrapper:object("TextButton", {
-		BackgroundTransparency = 1,
-		Size = UDim2.new(1, 0, 0, 36),
-		Text = ""
-	})
-
-	local label = header:object("TextLabel", {
-		BackgroundTransparency = 1,
-		Position = UDim2.fromOffset(10, 0),
-		Size = UDim2.new(1, -40, 1, 0),
-		Text = options.Name,
-		TextSize = 18,
-		Theme = {TextColor3 = "StrongText"},
-		TextXAlignment = Enum.TextXAlignment.Left
-	})
-
-	local arrow = header:object("ImageLabel", {
-		AnchorPoint = Vector2.new(1, 0.5),
-		BackgroundTransparency = 1,
-		Position = UDim2.new(1, -10, 0.5, 0),
-		Size = UDim2.fromOffset(16, 16),
-		Image = "rbxassetid://8498840035",
-		Theme = {ImageColor3 = "WeakText"},
-		Rotation = open and 180 or 0
-	})
-
-	local inner = wrapper:object("Frame", {
-		BackgroundTransparency = 1,
-		Position = UDim2.fromOffset(0, 36),
-		Size = UDim2.new(1, 0, 0, 0)
-	})
-
-	local innerLayout = inner:object("UIListLayout", {
-		Padding = UDim.new(0, 8),
-		HorizontalAlignment = Enum.HorizontalAlignment.Center
-	})
-
-	inner:object("UIPadding", {PaddingTop = UDim.new(0, 8), PaddingBottom = UDim.new(0, 8)})
-
-	local parentSelf = self
-
-	local function updateSize()
-		local contentH = innerLayout.AbsoluteContentSize.Y + 16
-		if open then
-			inner:tween{Size = UDim2.new(1, 0, 0, contentH)}
-			wrapper:tween{Size = UDim2.new(1, -20, 0, 36 + contentH)}
-			arrow:tween{Rotation = 180}
-		else
-			inner:tween{Size = UDim2.new(1, 0, 0, 0)}
-			wrapper:tween{Size = UDim2.new(1, -20, 0, 36)}
-			arrow:tween{Rotation = 0}
-		end
-		parentSelf:_resize_tab()
-	end
-
-	header.MouseButton1Click:connect(function()
-		open = not open
-		updateSize()
-	end)
-
-	if open then updateSize() end
-	self:_resize_tab()
-
-	return setmetatable({
-		statuText = self.statusText,
-		container = inner,
-		Theme = self.Theme,
-		core = self.core,
-		layout = innerLayout,
-		_parentSelf = parentSelf,
-		_updateSize = updateSize
-	}, Library)
 end
 
 return setmetatable(Library, {
