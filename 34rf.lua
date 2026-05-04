@@ -1,5 +1,3 @@
-
-
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -50,9 +48,48 @@ local Library = {
 			StrongText = Color3.fromHSV(0, 0, 1),        
 			WeakText = Color3.fromHSV(0, 0, 172/255)
 		},
-		Vaporwave = {},
-		OperaGX = {},
-		VisualStudio = {}
+		Vaporwave = {
+			Main = Color3.fromRGB(15, 5, 30),
+			Secondary = Color3.fromRGB(35, 10, 60),
+			Tertiary = Color3.fromRGB(255, 70, 200),
+			StrongText = Color3.fromRGB(255, 200, 255),
+			WeakText = Color3.fromRGB(180, 100, 220)
+		},
+		OperaGX = {
+			Main = Color3.fromRGB(18, 18, 20),
+			Secondary = Color3.fromRGB(30, 30, 35),
+			Tertiary = Color3.fromRGB(220, 0, 60),
+			StrongText = Color3.fromHSV(0, 0, 1),
+			WeakText = Color3.fromHSV(0, 0, 172/255)
+		},
+		VisualStudio = {
+			Main = Color3.fromRGB(30, 30, 30),
+			Secondary = Color3.fromRGB(45, 45, 48),
+			Tertiary = Color3.fromRGB(0, 122, 204),
+			StrongText = Color3.fromHSV(0, 0, 1),
+			WeakText = Color3.fromHSV(0, 0, 172/255)
+		},
+		Mocha = {
+			Main = Color3.fromRGB(24, 24, 37),
+			Secondary = Color3.fromRGB(36, 36, 54),
+			Tertiary = Color3.fromRGB(203, 166, 247),
+			StrongText = Color3.fromRGB(205, 214, 244),
+			WeakText = Color3.fromRGB(147, 153, 178)
+		},
+		Midnight = {
+			Main = Color3.fromRGB(5, 5, 20),
+			Secondary = Color3.fromRGB(15, 15, 40),
+			Tertiary = Color3.fromRGB(100, 160, 255),
+			StrongText = Color3.fromHSV(0, 0, 1),
+			WeakText = Color3.fromHSV(0, 0, 172/255)
+		},
+		Rose = {
+			Main = Color3.fromRGB(25, 15, 20),
+			Secondary = Color3.fromRGB(45, 28, 35),
+			Tertiary = Color3.fromRGB(235, 100, 130),
+			StrongText = Color3.fromRGB(255, 220, 230),
+			WeakText = Color3.fromRGB(200, 150, 170)
+		}
 	},
 	ColorPickerStyles = {
 		Legacy = 0,
@@ -883,12 +920,56 @@ function Library:create(options)
 		end,
 	}
 
+	settingsTab:slider{
+		Name = "UI Opacity",
+		Description = "Transparency of the main window.",
+		Min = 0,
+		Max = 80,
+		Default = 0,
+		Callback = function(value)
+			core:tween{BackgroundTransparency = value / 100}
+		end,
+	}
+
+	settingsTab:toggle{
+		Name = "Notifications",
+		Description = "Show/hide all notifications.",
+		StartingState = true,
+		Callback = function(state)
+			Library._notificationsEnabled = state
+		end,
+	}
+
+	settingsTab:button{
+		Name = "Reset Settings",
+		Description = "Restore all settings to default.",
+		Callback = function()
+			Library.LockDragging = true
+			Library.DragSpeed = 0.06
+			Library._notificationsEnabled = true
+			core:tween{BackgroundTransparency = 0}
+			Library:change_theme(Library.Themes["Dark"])
+			updateSettings("Theme", "Dark")
+			mt:notification{
+				Title = "Settings Reset",
+				Text = "All settings have been restored to default.",
+				Duration = 3
+			}
+		end,
+	}
+
+	settingsTab:label{
+		Text = "Mercury UI",
+		Description = "v1.0 — github.com/deeeity/mercury-lib",
+	}
+
 
 
 	return mt
 end
 
 function Library:notification(options)
+	if Library._notificationsEnabled == false then return end
 	options = self:set_defaults({
 		Title = "Notification",
 		Text = "Your character has been reset.",
@@ -1374,6 +1455,8 @@ function Library:dropdown(options)
 		Name = "Dropdown",
 		StartingText = "Select...",
 		Items = {},
+		Refresh = nil,       -- function() return {items} end — вызывается при обновлении
+		AutoRefresh = false, -- авто-обновление при открытии
 		Callback = function(item) return end
 	}, options)
 
@@ -1531,6 +1614,34 @@ function Library:dropdown(options)
 			newSize = (25 * #items) + 5
 			open = not open
 			if open then
+				-- авто-обновление при открытии
+				if options.AutoRefresh and options.Refresh then
+					local newItems = options.Refresh()
+					-- очищаем старые
+					for i, v in next, itemContainer.AbsoluteObject:GetChildren() do
+						if v.ClassName == "TextButton" then v:Destroy() end
+					end
+					table.clear(items)
+					for _, v in next, newItems do
+						local label = typeof(v) == "table" and v[1] or tostring(v)
+						local value = typeof(v) == "table" and v[2] or v
+						items[#items+1] = {{label, value}, nil}
+						local newItem = itemContainer:object("TextButton", {
+							Theme = {BackgroundColor3 = {"Secondary", 25}, TextColor3 = {"StrongText", 25}},
+							Text = label, TextSize = 14
+						}):round(5)
+						items[#items][2] = newItem
+						newItem.MouseEnter:connect(function() newItem:tween{BackgroundColor3 = Library.CurrentTheme.Tertiary} end)
+						newItem.MouseLeave:connect(function() newItem:tween{BackgroundColor3 = Library:lighten(Library.CurrentTheme.Secondary, 25)} end)
+						newItem.MouseButton1Click:connect(function()
+							toggle()
+							selectedText.Text = newItem.Text
+							selectedText:tween{Size = UDim2.fromOffset(selectedText.TextBounds.X + 20, 20), Length = 0.05}
+							options.Callback(value)
+						end)
+					end
+					newSize = (25 * #items) + 5
+				end
 				itemContainer:tween{Size = UDim2.new(1, -10, 0, newSize)}
 				dropdownContainer:tween({Size = UDim2.new(1, -20, 0, 52 + newSize)}, function()
 					self:_resize_tab()
@@ -1543,6 +1654,51 @@ function Library:dropdown(options)
 				end)
 				icon:tween{Rotation = 0, Position = UDim2.new(1, -11, 0, 12)}
 			end
+		end
+
+		-- логика кнопки refresh
+		if refreshBtn then
+			refreshBtn.MouseEnter:connect(function()
+				refreshBtn:tween{ImageColor3 = Library.CurrentTheme.Tertiary}
+			end)
+			refreshBtn.MouseLeave:connect(function()
+				refreshBtn:tween{ImageColor3 = Library.CurrentTheme.WeakText}
+			end)
+			refreshBtn.MouseButton1Click:connect(function()
+				local newItems = options.Refresh()
+				for i, v in next, itemContainer.AbsoluteObject:GetChildren() do
+					if v.ClassName == "TextButton" then v:Destroy() end
+				end
+				table.clear(items)
+				for _, v in next, newItems do
+					local label = typeof(v) == "table" and v[1] or tostring(v)
+					local value = typeof(v) == "table" and v[2] or v
+					items[#items+1] = {{label, value}, nil}
+					local newItem = itemContainer:object("TextButton", {
+						Theme = {BackgroundColor3 = {"Secondary", 25}, TextColor3 = {"StrongText", 25}},
+						Text = label, TextSize = 14
+					}):round(5)
+					items[#items][2] = newItem
+					newItem.MouseEnter:connect(function() newItem:tween{BackgroundColor3 = Library.CurrentTheme.Tertiary} end)
+					newItem.MouseLeave:connect(function() newItem:tween{BackgroundColor3 = Library:lighten(Library.CurrentTheme.Secondary, 25)} end)
+					newItem.MouseButton1Click:connect(function()
+						toggle()
+						selectedText.Text = newItem.Text
+						selectedText:tween{Size = UDim2.fromOffset(selectedText.TextBounds.X + 20, 20), Length = 0.05}
+						options.Callback(value)
+					end)
+				end
+				newSize = (25 * #items) + 5
+				if open then
+					itemContainer:tween{Size = UDim2.new(1, -10, 0, newSize)}
+					dropdownContainer:tween({Size = UDim2.new(1, -20, 0, 52 + newSize)}, function()
+						self:_resize_tab()
+					end)
+				end
+				-- spin animation
+				refreshBtn:tween{Rotation = 360, Length = 0.4}
+				task.delay(0.4, function() refreshBtn.Rotation = 0 end)
+			end)
 		end
 
 		dropdownContainer.MouseEnter:connect(function()
@@ -1678,6 +1834,257 @@ function Library:dropdown(options)
 			container = container,
 			layout = layout
 		})
+	end
+
+	return methods
+end
+
+function Library:multidropdown(options)
+	options = self:set_defaults({
+		Name = "Multi Dropdown",
+		Placeholder = "Select...",
+		Items = {},
+		MaxSelected = 0, -- 0 = unlimited
+		Callback = function(selected) end
+	}, options)
+
+	local newSize = 0
+	local open = false
+	local selectedItems = {}
+
+	local dropdownContainer = self.container:object("TextButton", {
+		Theme = {BackgroundColor3 = "Secondary"},
+		Size = UDim2.new(1, -20, 0, 52)
+	}):round(7)
+
+	local text = dropdownContainer:object("TextLabel", {
+		BackgroundTransparency = 1,
+		Position = UDim2.fromOffset(10, (options.Description and 5) or 15),
+		Size = UDim2.new(0.5, -10, 0, 22),
+		Text = options.Name,
+		TextSize = 22,
+		Theme = {TextColor3 = "StrongText"},
+		TextXAlignment = Enum.TextXAlignment.Left
+	})
+
+	if options.Description then
+		dropdownContainer:object("TextLabel", {
+			BackgroundTransparency = 1,
+			Position = UDim2.fromOffset(10, 27),
+			Size = UDim2.new(0.5, -10, 0, 20),
+			Text = options.Description,
+			TextSize = 18,
+			Theme = {TextColor3 = "WeakText"},
+			TextXAlignment = Enum.TextXAlignment.Left
+		})
+	end
+
+	local icon = dropdownContainer:object("ImageLabel", {
+		AnchorPoint = Vector2.new(1, 0),
+		BackgroundTransparency = 1,
+		Position = UDim2.new(1, -11, 0, 12),
+		Size = UDim2.fromOffset(26, 26),
+		Image = "rbxassetid://8498840035",
+		Theme = {ImageColor3 = "Tertiary"}
+	})
+
+	-- refresh button (только если есть Refresh функция)
+	local refreshBtn
+	if options.Refresh then
+		refreshBtn = dropdownContainer:object("ImageButton", {
+			AnchorPoint = Vector2.new(1, 0),
+			BackgroundTransparency = 1,
+			Position = UDim2.new(1, -42, 0, 13),
+			Size = UDim2.fromOffset(22, 22),
+			Image = "rbxassetid://8497488960",
+			Theme = {ImageColor3 = "WeakText"}
+		})
+	end
+
+	local selectedText = dropdownContainer:object("TextLabel", {
+		AnchorPoint = Vector2.new(1, 0),
+		Theme = {
+			BackgroundColor3 = {"Secondary", -20},
+			TextColor3 = "WeakText"
+		},
+		Position = UDim2.new(1, -50, 0, 16),
+		Size = UDim2.fromOffset(200, 20),
+		TextSize = 12,
+		Text = options.Placeholder,
+		TextTruncate = Enum.TextTruncate.AtEnd
+	}):round(5):stroke("Tertiary")
+
+	local itemContainer = dropdownContainer:object("Frame", {
+		BackgroundTransparency = 1,
+		Position = UDim2.new(0, 5, 0, 55),
+		Size = UDim2.new(1, -10, 0, 0),
+		ClipsDescendants = true
+	})
+
+	selectedText.Size = UDim2.fromOffset(math.min(selectedText.TextBounds.X + 20, 200), 20)
+
+	itemContainer:object("UIGridLayout", {
+		CellPadding = UDim2.fromOffset(0, 5),
+		CellSize = UDim2.new(1, 0, 0, 20),
+		FillDirection = Enum.FillDirection.Horizontal,
+		HorizontalAlignment = Enum.HorizontalAlignment.Left,
+		VerticalAlignment = Enum.VerticalAlignment.Top
+	})
+
+	local layout = self.layout
+	local container = self.container
+	local items = {}
+
+	local function updateSelectedText()
+		if #selectedItems == 0 then
+			selectedText.Text = options.Placeholder
+		elseif #selectedItems == 1 then
+			selectedText.Text = tostring(selectedItems[1])
+		else
+			selectedText.Text = #selectedItems .. " selected"
+		end
+		selectedText.Size = UDim2.fromOffset(math.min(selectedText.TextBounds.X + 20, 200), 20)
+	end
+
+	local toggle
+	local function addItem(label, value)
+		local isSelected = false
+		for _, v in next, selectedItems do
+			if v == value then isSelected = true break end
+		end
+
+		local newItem = itemContainer:object("TextButton", {
+			Theme = {
+				BackgroundColor3 = isSelected and "Tertiary" or {"Secondary", 25},
+				TextColor3 = isSelected and "StrongText" or {"StrongText", 25}
+			},
+			Text = label,
+			TextSize = 14
+		}):round(5)
+
+		-- checkmark
+		local checkmark = newItem:object("ImageLabel", {
+			AnchorPoint = Vector2.new(1, 0.5),
+			BackgroundTransparency = 1,
+			Position = UDim2.new(1, -4, 0.5, 0),
+			Size = UDim2.fromOffset(12, 12),
+			Image = "rbxassetid://8498709213",
+			Theme = {ImageColor3 = "StrongText"},
+			ImageTransparency = isSelected and 0 or 1
+		})
+
+		items[#items+1] = {label = label, value = value, btn = newItem, check = checkmark}
+
+		newItem.MouseEnter:connect(function()
+			if not table.find(selectedItems, value) then
+				newItem:tween{BackgroundColor3 = Library.CurrentTheme.Tertiary}
+			end
+		end)
+		newItem.MouseLeave:connect(function()
+			if not table.find(selectedItems, value) then
+				newItem:tween{BackgroundColor3 = Library:lighten(Library.CurrentTheme.Secondary, 25)}
+			end
+		end)
+
+		newItem.MouseButton1Click:connect(function()
+			local idx = table.find(selectedItems, value)
+			if idx then
+				table.remove(selectedItems, idx)
+				newItem:tween{BackgroundColor3 = Library:lighten(Library.CurrentTheme.Secondary, 25)}
+				checkmark:tween{ImageTransparency = 1}
+			else
+				if options.MaxSelected > 0 and #selectedItems >= options.MaxSelected then return end
+				table.insert(selectedItems, value)
+				newItem:tween{BackgroundColor3 = Library.CurrentTheme.Tertiary}
+				checkmark:tween{ImageTransparency = 0}
+			end
+			updateSelectedText()
+			options.Callback(selectedItems)
+		end)
+	end
+
+	for _, v in next, options.Items do
+		if typeof(v) == "table" then
+			addItem(v[1], v[2])
+		else
+			addItem(tostring(v), v)
+		end
+	end
+
+	newSize = (25 * #items) + 5
+
+	toggle = function()
+		open = not open
+		newSize = (25 * #items) + 5
+		if open then
+			itemContainer:tween{Size = UDim2.new(1, -10, 0, newSize)}
+			dropdownContainer:tween({Size = UDim2.new(1, -20, 0, 52 + newSize)}, function()
+				self:_resize_tab()
+			end)
+			icon:tween{Rotation = 180, Position = UDim2.new(1, -11, 0, 15)}
+		else
+			itemContainer:tween{Size = UDim2.new(1, -10, 0, 0)}
+			dropdownContainer:tween({Size = UDim2.new(1, -20, 0, 52)}, function()
+				self:_resize_tab()
+			end)
+			icon:tween{Rotation = 0, Position = UDim2.new(1, -11, 0, 12)}
+		end
+	end
+
+	do
+		local hovered = false
+		dropdownContainer.MouseEnter:connect(function()
+			hovered = true
+			dropdownContainer:tween{BackgroundColor3 = self:lighten(Library.CurrentTheme.Secondary, 10)}
+		end)
+		dropdownContainer.MouseLeave:connect(function()
+			hovered = false
+			dropdownContainer:tween{BackgroundColor3 = Library.CurrentTheme.Secondary}
+		end)
+		dropdownContainer.MouseButton1Down:connect(function()
+			dropdownContainer:tween{BackgroundColor3 = self:lighten(Library.CurrentTheme.Secondary, 20)}
+		end)
+		UserInputService.InputEnded:connect(function(key)
+			if key.UserInputType == Enum.UserInputType.MouseButton1 then
+				dropdownContainer:tween{BackgroundColor3 = (hovered and self:lighten(Library.CurrentTheme.Secondary)) or Library.CurrentTheme.Secondary}
+			end
+		end)
+		dropdownContainer.MouseButton1Click:connect(function()
+			toggle()
+		end)
+	end
+
+	self:_resize_tab()
+
+	local methods = {}
+
+	function methods:GetSelected()
+		return selectedItems
+	end
+
+	function methods:SetSelected(vals)
+		selectedItems = {}
+		for _, item in next, items do
+			local found = table.find(vals, item.value)
+			if found then
+				table.insert(selectedItems, item.value)
+				item.btn:tween{BackgroundColor3 = Library.CurrentTheme.Tertiary}
+				item.check:tween{ImageTransparency = 0}
+			else
+				item.btn:tween{BackgroundColor3 = Library:lighten(Library.CurrentTheme.Secondary, 25)}
+				item.check:tween{ImageTransparency = 1}
+			end
+		end
+		updateSelectedText()
+	end
+
+	function methods:Clear()
+		selectedItems = {}
+		for _, item in next, items do
+			item.btn:tween{BackgroundColor3 = Library:lighten(Library.CurrentTheme.Secondary, 25)}
+			item.check:tween{ImageTransparency = 1}
+		end
+		updateSelectedText()
 	end
 
 	return methods
@@ -2702,71 +3109,92 @@ end
 function Library:_theme_selector()
 
 	local themesCount = 0
-
-	for _ in next, Library.Themes do
-		themesCount += 1
+	for _, themeColors in next, Library.Themes do
+		local count = 0
+		for _, color in next, themeColors do
+			if not (type(color) == "boolean") then count += 1 end
+		end
+		if count >= 5 then themesCount += 1 end
 	end
+
+	-- dynamic height: 2 rows of 83px + gaps + header
+	local rows = math.ceil(themesCount / 4)
+	local containerH = math.max(127, 38 + rows * 93 + 10)
 
 	local themeContainer = self.container:object("Frame", {
 		Theme = {BackgroundColor3 = "Secondary"},
-		Size = UDim2.new(1, -20, 0, 127)
+		Size = UDim2.new(1, -20, 0, containerH)
 	}):round(7)
 
 	local text = themeContainer:object("TextLabel", {
 		BackgroundTransparency = 1,
 		Position = UDim2.fromOffset(10, 5),
-		Size = UDim2.new(0.5, -10, 0, 22),
+		Size = UDim2.new(1, -20, 0, 22),
 		Text = "Theme",
 		TextSize = 22,
 		Theme = {TextColor3 = "StrongText"},
 		TextXAlignment = Enum.TextXAlignment.Left
 	})
 
-	local colorThemesContainer = themeContainer:object("Frame", {
+	local colorThemesScroll = themeContainer:object("ScrollingFrame", {
 		Size = UDim2.new(1, 0, 1, -32),
 		BackgroundTransparency = 1,
-		Position = UDim2.new(0.5, 0, 1, -5),
-		AnchorPoint = Vector2.new(0.5, 1)
+		Position = UDim2.new(0, 0, 0, 32),
+		ScrollBarThickness = 3,
+		ScrollBarImageColor3 = Library.CurrentTheme.Tertiary,
+		ScrollingDirection = Enum.ScrollingDirection.Y,
+		AutomaticCanvasSize = Enum.AutomaticSize.Y
+	})
+
+	local colorThemesContainer = colorThemesScroll:object("Frame", {
+		Size = UDim2.new(1, 0, 0, 0),
+		BackgroundTransparency = 1,
+		AutomaticSize = Enum.AutomaticSize.Y
 	})
 
 	local grid = colorThemesContainer:object("UIGridLayout", {
-		CellPadding = UDim2.fromOffset(10, 10),
-		CellSize = UDim2.fromOffset(102, 83),
-		VerticalAlignment = Enum.VerticalAlignment.Center
+		CellPadding = UDim2.fromOffset(8, 8),
+		CellSize = UDim2.fromOffset(120, 83),
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
+		VerticalAlignment = Enum.VerticalAlignment.Top,
+		SortOrder = Enum.SortOrder.Name
 	})
 
 	colorThemesContainer:object("UIPadding", {
-		PaddingLeft = UDim.new(0, 10),
-		PaddingTop = UDim.new(0, 5)
+		PaddingLeft = UDim.new(0, 8),
+		PaddingRight = UDim.new(0, 8),
+		PaddingTop = UDim.new(0, 5),
+		PaddingBottom = UDim.new(0, 8)
 	})
 
 	for themeName, themeColors in next, Library.Themes do
 		local count = 0
-
 		for _, color in next, themeColors do
-			if not (type(color) == "boolean") then
-				count += 1
-			end
+			if not (type(color) == "boolean") then count += 1 end
 		end
 
 		if count >= 5 then
+			local isActive = (Library.CurrentTheme == themeColors)
+
 			local theme = colorThemesContainer:object("TextButton", {
-				BackgroundTransparency = 1
+				BackgroundTransparency = 1,
+				Name = themeName
 			})
 
 			local themeColorsContainer = theme:object("Frame", {
 				Size = UDim2.new(1, 0, 1, -20),
 				BackgroundTransparency = 1
-			}):round(5):stroke("WeakText", 1)
+			}):round(5):stroke(isActive and "Tertiary" or "WeakText", isActive and 2 or 1)
 
 			local themeNameLabel = theme:object("TextLabel", {
 				BackgroundTransparency = 1,
 				Text = themeName,
-				TextSize = 16,
-				Theme = {TextColor3 = "StrongText"},
+				TextSize = 14,
+				Theme = {TextColor3 = isActive and "Tertiary" or "StrongText"},
 				Size = UDim2.new(1, 0, 0, 20),
 				Position = UDim2.fromScale(0, 1),
-				AnchorPoint = Vector2.new(0, 1)
+				AnchorPoint = Vector2.new(0, 1),
+				Font = isActive and Enum.Font.SourceSansBold or Enum.Font.SourceSans
 			})
 
 			local colorMain = themeColorsContainer:object("Frame", {
@@ -2777,31 +3205,28 @@ function Library:_theme_selector()
 
 			local colorSecondary = colorMain:object("Frame", {
 				Centered = true,
-				Size = UDim2.new(1, -16, 1, -16),
+				Size = UDim2.new(1, -14, 1, -14),
 				BackgroundColor3 = themeColors.Secondary
 			}):round(4)
 
-			colorSecondary:object("UIListLayout", {
-				Padding = UDim.new(0, 5)
-			})
-
+			colorSecondary:object("UIListLayout", {Padding = UDim.new(0, 4)})
 			colorSecondary:object("UIPadding", {
 				PaddingTop = UDim.new(0, 5),
 				PaddingLeft = UDim.new(0, 5)
 			})
 
-			local colorTertiary = colorSecondary:object("Frame", {
-				Size = UDim2.new(1, -20, 0, 9),
+			colorSecondary:object("Frame", {
+				Size = UDim2.new(1, -16, 0, 8),
 				BackgroundColor3 = themeColors.Tertiary
 			}):round(100)
 
-			local colorStrong = colorSecondary:object("Frame", {
-				Size = UDim2.new(1, -30, 0, 9),
+			colorSecondary:object("Frame", {
+				Size = UDim2.new(1, -26, 0, 8),
 				BackgroundColor3 = themeColors.StrongText
 			}):round(100)
 
-			local colorTertiary = colorSecondary:object("Frame", {
-				Size = UDim2.new(1, -40, 0, 9),
+			colorSecondary:object("Frame", {
+				Size = UDim2.new(1, -36, 0, 8),
 				BackgroundColor3 = themeColors.WeakText
 			}):round(100)
 
@@ -3086,6 +3511,9 @@ function Library:cp(options)
 end
 function Library:colorpicker(options)
 	return Library.color_picker(self, options)
+end
+function Library:multi_dropdown(options)
+	return Library.multidropdown(self, options)
 end
 
 function Library:slider(options)
