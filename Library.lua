@@ -1043,6 +1043,8 @@ local Library do
         self.Theme[Theme] = Color
 
         for _, Item in self.ThemeItems do
+            local val = Item.Properties[next(Item.Properties)]
+            -- fast path: only iterate items that reference this theme key
             for Property, Value in Item.Properties do
                 if type(Value) == "string" and Value == Theme then
                     Item.Item[Property] = Color
@@ -4625,9 +4627,7 @@ local Library do
             local Descendants = Items["OptionHolder"].Instance:GetDescendants()
             TableInsert(Descendants, Items["OptionHolder"].Instance)
 
-            local HasTween = false
             local NewTween
-
             for Index, Value in Descendants do 
                 local ValueIndex = Library:GetTransparencyPropertyFromItem(Value)
 
@@ -4642,21 +4642,17 @@ local Library do
                 if type(ValueIndex) == "table" then
                     for _, Property in ValueIndex do 
                         NewTween = Library:FadeItem(Value, Property, Bool, Dropdown.Window.FadeSpeed)
-                        HasTween = true
                     end
                 else
                     NewTween = Library:FadeItem(Value, ValueIndex, Bool, Dropdown.Window.FadeSpeed)
-                    HasTween = true
                 end
             end
 
-            if HasTween and NewTween then
+            if NewTween then
                 Library:Connect(NewTween.Tween.Completed, function()
                     Debounce = false
-                    if not Bool then
-                        Items["OptionHolder"].Instance.Visible = false
-                        Items["OptionHolder"].Instance.ZIndex = 1
-                    end
+                    Items["OptionHolder"].Instance.Visible = Bool
+                    Items["OptionHolder"].Instance.ZIndex = Bool and 15 or 1
                 end)
             else
                 Debounce = false
@@ -5346,3 +5342,6 @@ end
 
 getgenv().Library = Library
 return Library
+
+
+почему дропдовн не могу открыть
