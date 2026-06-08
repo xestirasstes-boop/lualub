@@ -4616,15 +4616,24 @@ local Library do
             Dropdown.IsOpen = Bool
             Debounce = true
 
-            Items["OptionHolder"].Instance.Visible = Bool
-            Items["OptionHolder"].Instance.ZIndex = Bool and 15 or 1
-
             if Bool then
+                Items["OptionHolder"].Instance.Visible = true
+                Items["OptionHolder"].Instance.ZIndex = 15
                 Items["Open"].Instance.Text = "-"
                 Items["Open"].Instance.Position = UDim2New(0, -5, 0, -1)
+                -- принудительно обновляем высоту при открытии
+                task.defer(function()
+                    local contentHeight = Items["OptionHolder"].Instance.AbsoluteCanvasSize.Y
+                    local maxHeight = 90
+                    local newHeight = math.max(math.min(contentHeight, maxHeight), #Dropdown.Items * 15)
+                    if newHeight < 1 then newHeight = math.min(#Dropdown.Items * 15, maxHeight) end
+                    Items["OptionHolder"].Instance.Size = UDim2New(1, 0, 0, newHeight)
+                end)
             else
                 Items["Open"].Instance.Text = "+"
                 Items["Open"].Instance.Position = UDim2New(0, -4, 0, -1)
+                Items["OptionHolder"].Instance.Visible = false
+                Items["OptionHolder"].Instance.ZIndex = 1
             end
 
             Debounce = false
