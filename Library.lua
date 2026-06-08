@@ -913,8 +913,6 @@ local Library do
         TableInsert(self.Connections, NewConnection)
         return NewConnection
     end
-
-    Library.Disconnect = function(self, Name)
         for _, Connection in self.Connections do 
             if Connection.Name == Name then
                 Connection.Connection:Disconnect()
@@ -4614,29 +4612,59 @@ local Library do
             end
 
             Dropdown.IsOpen = Bool
-            Debounce = true
+            Debounce = true 
 
-            if Bool then
+            if Bool then 
                 Items["OptionHolder"].Instance.Visible = true
                 Items["OptionHolder"].Instance.ZIndex = 15
                 Items["Open"].Instance.Text = "-"
                 Items["Open"].Instance.Position = UDim2New(0, -5, 0, -1)
-                -- принудительно обновляем высоту при открытии
-                task.defer(function()
-                    local contentHeight = Items["OptionHolder"].Instance.AbsoluteCanvasSize.Y
-                    local maxHeight = 90
-                    local newHeight = math.max(math.min(contentHeight, maxHeight), #Dropdown.Items * 15)
-                    if newHeight < 1 then newHeight = math.min(#Dropdown.Items * 15, maxHeight) end
-                    Items["OptionHolder"].Instance.Size = UDim2New(1, 0, 0, newHeight)
-                end)
             else
                 Items["Open"].Instance.Text = "+"
                 Items["Open"].Instance.Position = UDim2New(0, -4, 0, -1)
-                Items["OptionHolder"].Instance.Visible = false
-                Items["OptionHolder"].Instance.ZIndex = 1
             end
 
-            Debounce = false
+            local Descendants = Items["OptionHolder"].Instance:GetDescendants()
+            TableInsert(Descendants, Items["OptionHolder"].Instance)
+
+            local HasTween = false
+            local NewTween
+
+            for Index, Value in Descendants do 
+                local ValueIndex = Library:GetTransparencyPropertyFromItem(Value)
+
+                if not ValueIndex then 
+                    continue
+                end
+
+                if not StringFind(Value.ClassName, "UI") then 
+                    Value.ZIndex = Bool and 15 or 1
+                end
+
+                if type(ValueIndex) == "table" then
+                    for _, Property in ValueIndex do 
+                        NewTween = Library:FadeItem(Value, Property, Bool, Dropdown.Window.FadeSpeed)
+                        HasTween = true
+                    end
+                else
+                    NewTween = Library:FadeItem(Value, ValueIndex, Bool, Dropdown.Window.FadeSpeed)
+                    HasTween = true
+                end
+            end
+
+            if HasTween and NewTween then
+                Library:Connect(NewTween.Tween.Completed, function()
+                    Debounce = false
+                    if not Bool then
+                        Items["OptionHolder"].Instance.Visible = false
+                        Items["OptionHolder"].Instance.ZIndex = 1
+                    end
+                end)
+            else
+                Debounce = false
+                Items["OptionHolder"].Instance.Visible = Bool
+                Items["OptionHolder"].Instance.ZIndex = Bool and 15 or 1
+            end
         end
 
         for Index, Value in Dropdown.Items do 
