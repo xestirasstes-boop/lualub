@@ -3002,30 +3002,8 @@ local Library do
                 Items["Text"]:ChangeItemTheme({TextColor3 = "Text"})
             end
 
-            local Descendants = Items["Page"].Instance:GetDescendants()
-            TableInsert(Descendants, Items["Page"].Instance)
-
-            local NewTween
-            for Index, Value in Descendants do 
-                local ValueIndex = Library:GetTransparencyPropertyFromItem(Value)
-
-                if not ValueIndex then 
-                    continue
-                end
-
-                if type(ValueIndex) == "table" then
-                    for _, Property in ValueIndex do 
-                        NewTween = Library:FadeItem(Value, Property, Bool, Page.Window.FadeSpeed or 0.5)
-                    end
-                else
-                    NewTween = Library:FadeItem(Value, ValueIndex, Bool, Page.Window.FadeSpeed or 0.5)
-                end
-            end
-
-            Library:Connect(NewTween.Tween.Completed, function()
-                Debounce = false
-                Items["Page"].Instance.Visible = Bool
-            end)
+            Items["Page"].Instance.Visible = Bool
+            Debounce = false
         end
 
         Items["Inactive"]:Connect("MouseButton1Down", function()
@@ -3233,30 +3211,8 @@ local Library do
                 Items["Inactive"].Instance.Size = UDim2New(1, 0, 1, -2)
             end
 
-            local Descendants = Items["Subtab"].Instance:GetDescendants()
-            TableInsert(Descendants, Items["Subtab"].Instance)
-
-            local NewTween
-            for Index, Value in Descendants do 
-                local ValueIndex = Library:GetTransparencyPropertyFromItem(Value)
-
-                if not ValueIndex then 
-                    continue
-                end
-
-                if type(ValueIndex) == "table" then
-                    for _, Property in ValueIndex do 
-                        NewTween = Library:FadeItem(Value, Property, Bool, SubPage.Window.FadeSpeed or 0.5)
-                    end
-                else
-                    NewTween = Library:FadeItem(Value, ValueIndex, Bool, SubPage.Window.FadeSpeed or 0.5)
-                end
-            end
-
-            Library:Connect(NewTween.Tween.Completed, function()
-                Debounce = false
-                Items["Subtab"].Instance.Visible = Bool
-            end)
+            Items["Subtab"].Instance.Visible = Bool
+            Debounce = false
         end
 
         Items["Inactive"]:Connect("MouseButton1Down", function()
