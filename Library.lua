@@ -1043,8 +1043,6 @@ local Library do
         self.Theme[Theme] = Color
 
         for _, Item in self.ThemeItems do
-            local val = Item.Properties[next(Item.Properties)]
-            -- fast path: only iterate items that reference this theme key
             for Property, Value in Item.Properties do
                 if type(Value) == "string" and Value == Theme then
                     Item.Item[Property] = Color
