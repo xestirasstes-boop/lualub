@@ -4404,12 +4404,12 @@ local Library do
             })
 
             Items["RealDropdown"]:OnHover(function()
-                Items["RealDropdown"]:Tween(nil, {BackgroundColor3 = Library.Theme["Hovered Element"]})
+                Items["RealDropdown"].Instance.BackgroundColor3 = Library.Theme["Hovered Element"]
                 Items["RealDropdown"]:ChangeItemTheme({BackgroundColor3 = "Hovered Element", BorderColor3 = "Border"})
             end)
 
             Items["RealDropdown"]:OnHoverLeave(function()
-                Items["RealDropdown"]:Tween(nil, {BackgroundColor3 = Library.Theme["Background"]})
+                Items["RealDropdown"].Instance.BackgroundColor3 = Library.Theme["Background"]
                 Items["RealDropdown"]:ChangeItemTheme({BackgroundColor3 = "Background", BorderColor3 = "Border"})
             end)
         end
@@ -4614,18 +4614,17 @@ local Library do
             end
 
             Dropdown.IsOpen = Bool
-            Debounce = true 
+            Debounce = true
 
-            if Bool then 
-                Items["OptionHolder"].Instance.Visible = true
-                Items["OptionHolder"].Instance.ZIndex = 15
+            Items["OptionHolder"].Instance.Visible = Bool
+            Items["OptionHolder"].Instance.ZIndex = Bool and 15 or 1
+
+            if Bool then
                 Items["Open"].Instance.Text = "-"
                 Items["Open"].Instance.Position = UDim2New(0, -5, 0, -1)
             else
                 Items["Open"].Instance.Text = "+"
                 Items["Open"].Instance.Position = UDim2New(0, -4, 0, -1)
-                Items["OptionHolder"].Instance.Visible = false
-                Items["OptionHolder"].Instance.ZIndex = 1
             end
 
             Debounce = false
