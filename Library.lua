@@ -5290,7 +5290,7 @@ local Library do
         return Listbox
     end
 
-    Library.CreateSettingsPage = function(self, Window, Watermark, KeybindList)
+    Library.CreateSettingsPage = function(self, Window, Watermark, KeybindList, Options)
         local SettingsTab = Window:Page({Name = "Settings", Columns = 2, Subtabs = false})
 
         do -- Settings Tab
@@ -5328,9 +5328,11 @@ local Library do
                 Library.Tween.Time = Value
             end})
         
-            SettingsSection:Button({Name = "Notification test", Callback = function()
-                Library:Notification("This is a notification This is a notification This is a notification This is a notification", 5, Color3.fromRGB(math.random(0, 255), math.random(0, 255), math.random(0, 255)))
-            end})
+            if not Options or Options.ShowDevButtons ~= false then
+                SettingsSection:Button({Name = "Notification test", Callback = function()
+                    Library:Notification("This is a notification This is a notification This is a notification This is a notification", 5, Color3.fromRGB(math.random(0, 255), math.random(0, 255), math.random(0, 255)))
+                end})
+            end
         
             SettingsSection:Button({Name = "Unload library", Callback = function()
                 Library:Unload()
