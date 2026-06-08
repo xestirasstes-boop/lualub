@@ -881,13 +881,8 @@ local Library do
 
     Library.Thread = function(self, Function)
         local NewThread = coroutine.create(Function)
-        
-        coroutine.wrap(function()
-            coroutine.resume(NewThread)
-        end)()
-
+        coroutine.resume(NewThread)
         TableInsert(self.Threads, NewThread)
-
         return NewThread
     end
     
@@ -905,18 +900,15 @@ local Library do
     end
 
     Library.Connect = function(self, Event, Callback, Name)
-        Name = Name or StringFormat("Connection_%s_%s", self.UnnamedConnections + 1, HttpService:GenerateGUID(false))
+        self.UnnamedConnections = self.UnnamedConnections + 1
+        Name = Name or ("C_" .. self.UnnamedConnections)
 
         local NewConnection = {
             Event = Event,
             Callback = Callback,
             Name = Name,
-            Connection = nil
+            Connection = Event:Connect(Callback)
         }
-
-        Library:Thread(function()
-            NewConnection.Connection = Event:Connect(Callback)
-        end)
 
         TableInsert(self.Connections, NewConnection)
         return NewConnection
@@ -932,8 +924,8 @@ local Library do
     end
 
     Library.NextFlag = function(self)
-        local FlagNumber = self.UnnamedFlags + 1
-        return StringFormat("Flag Number %s %s", FlagNumber, HttpService:GenerateGUID(false))
+        self.UnnamedFlags = self.UnnamedFlags + 1
+        return "Flag_" .. self.UnnamedFlags
     end
 
     Library.AddToTheme = function(self, Item, Properties)
@@ -1053,6 +1045,8 @@ local Library do
         self.Theme[Theme] = Color
 
         for _, Item in self.ThemeItems do
+            local val = Item.Properties[next(Item.Properties)]
+            -- fast path: only iterate items that reference this theme key
             for Property, Value in Item.Properties do
                 if type(Value) == "string" and Value == Theme then
                     Item.Item[Property] = Color
@@ -2737,37 +2731,8 @@ local Library do
             end
 
             Window.IsOpen = Bool
-
-            Debounce = true 
-
-            if Bool then 
-                Items["MainFrame"].Instance.Visible = true
-            end
-
-            local Descendants = Items["MainFrame"].Instance:GetDescendants()
-            TableInsert(Descendants, Items["MainFrame"].Instance)
-
-            local NewTween
-            for Index, Value in Descendants do 
-                local ValueIndex = Library:GetTransparencyPropertyFromItem(Value)
-
-                if not ValueIndex then 
-                    continue
-                end
-
-                if type(ValueIndex) == "table" then
-                    for _, Property in ValueIndex do 
-                        NewTween = Library:FadeItem(Value, Property, Bool, Window.FadeSpeed)
-                    end
-                else
-                    NewTween = Library:FadeItem(Value, ValueIndex, Bool, Window.FadeSpeed)
-                end
-            end
-
-            Library:Connect(NewTween.Tween.Completed, function()
-                Debounce = false
-                Items["MainFrame"].Instance.Visible = Bool
-            end)
+            Items["MainFrame"].Instance.Visible = Bool
+            Debounce = false
         end
 
         Library:Connect(UserInputService.InputBegan, function(Input)
@@ -3857,7 +3822,7 @@ local Library do
                     return 
                 end
 
-                Items["Indicator"]:Tween(nil, {BackgroundColor3 = Library.Theme["Hovered Element"]})
+                Items["Indicator"].Instance.BackgroundColor3 = Library.Theme["Hovered Element"]
                 Items["Indicator"]:ChangeItemTheme({BackgroundColor3 = "Hovered Element", BorderColor3 = "Border"})
             end)
 
@@ -3866,7 +3831,7 @@ local Library do
                     return 
                 end
 
-                Items["Indicator"]:Tween(nil, {BackgroundColor3 = Library.Theme["Element"]})
+                Items["Indicator"].Instance.BackgroundColor3 = Library.Theme["Element"]
                 Items["Indicator"]:ChangeItemTheme({BackgroundColor3 = "Element", BorderColor3 = "Border"})
             end)
         end
@@ -3882,14 +3847,12 @@ local Library do
 
             if Toggle.Value then 
                 Items["Indicator"]:ChangeItemTheme({BackgroundColor3 = "Accent"})
-
-                Items["Indicator"]:Tween(nil, {BackgroundColor3 = Library.Theme.Accent})
-                Items["Text"]:Tween(nil, {TextTransparency = 0})
+                Items["Indicator"].Instance.BackgroundColor3 = Library.Theme.Accent
+                Items["Text"].Instance.TextTransparency = 0
             else
                 Items["Indicator"]:ChangeItemTheme({BackgroundColor3 = "Element"})
-
-                Items["Indicator"]:Tween(nil, {BackgroundColor3 = Library.Theme.Element})
-                Items["Text"]:Tween(nil, {TextTransparency = 0.48})
+                Items["Indicator"].Instance.BackgroundColor3 = Library.Theme.Element
+                Items["Text"].Instance.TextTransparency = 0.48
             end
 
             if Toggle.Callback then 
@@ -4028,12 +3991,12 @@ local Library do
             }):AddToTheme({Color = "Text Border"})
 
             Items["Button"]:OnHover(function()
-                Items["Button"]:Tween(nil, {BackgroundColor3 = Library.Theme["Hovered Element"]})
+                Items["Button"].Instance.BackgroundColor3 = Library.Theme["Hovered Element"]
                 Items["Button"]:ChangeItemTheme({BackgroundColor3 = "Hovered Element", BorderColor3 = "Border"})
             end)
 
             Items["Button"]:OnHoverLeave(function()
-                Items["Button"]:Tween(nil, {BackgroundColor3 = Library.Theme["Element"]})
+                Items["Button"].Instance.BackgroundColor3 = Library.Theme["Element"]
                 Items["Button"]:ChangeItemTheme({BackgroundColor3 = "Element", BorderColor3 = "Border"})
             end)
         end
@@ -4041,19 +4004,17 @@ local Library do
         function Button:Press()
             Library:SafeCall(Button.Callback)
 
+            Items["Text"].Instance.TextColor3 = Library.Theme.Accent
+            Items["Button"].Instance.BackgroundColor3 = Library.Theme.Accent
             Items["Text"]:ChangeItemTheme({TextColor3 = "Accent"})
             Items["Button"]:ChangeItemTheme({BackgroundColor3 = "Accent"})
 
-            Items["Text"]:Tween(nil, {TextColor3 = Library.Theme.Accent})
-            Items["Button"]:Tween(nil, {BackgroundColor3 = Library.Theme.Accent})
-
-            task.wait(0.1)
-
-            Items["Text"]:ChangeItemTheme({TextColor3 = "Text"})
-            Items["Button"]:ChangeItemTheme({BackgroundColor3 = "Element"})
-
-            Items["Text"]:Tween(nil, {TextColor3 = Library.Theme.Text})
-            Items["Button"]:Tween(nil, {BackgroundColor3 = Library.Theme.Element})
+            task.delay(0.1, function()
+                Items["Text"].Instance.TextColor3 = Library.Theme.Text
+                Items["Button"].Instance.BackgroundColor3 = Library.Theme.Element
+                Items["Text"]:ChangeItemTheme({TextColor3 = "Text"})
+                Items["Button"]:ChangeItemTheme({BackgroundColor3 = "Element"})
+            end)
         end
 
         function Button:SetVisiblity(Bool)
@@ -4196,12 +4157,12 @@ local Library do
             end
 
             Items["RealSlider"]:OnHover(function()
-                Items["RealSlider"]:Tween(nil, {BackgroundColor3 = Library.Theme["Hovered Element"]})
+                Items["RealSlider"].Instance.BackgroundColor3 = Library.Theme["Hovered Element"]
                 Items["RealSlider"]:ChangeItemTheme({BackgroundColor3 = "Hovered Element", BorderColor3 = "Border"})
             end)
 
             Items["RealSlider"]:OnHoverLeave(function()
-                Items["RealSlider"]:Tween(nil, {BackgroundColor3 = Library.Theme["Background"]})
+                Items["RealSlider"].Instance.BackgroundColor3 = Library.Theme["Background"]
                 Items["RealSlider"]:ChangeItemTheme({BackgroundColor3 = "Background", BorderColor3 = "Border"})
             end)
         end
@@ -4217,7 +4178,7 @@ local Library do
                 Items["Value"].Instance.Text = `{Slider.Value}{Slider.Suffix}`
             end
 
-            Items["Indicator"]:Tween(TweenInfo.new(0.17, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = UDim2New((Slider.Value - Slider.Min) / (Slider.Max - Slider.Min), 0, 1, 0)})
+            Items["Indicator"].Instance.Size = UDim2New((Slider.Value - Slider.Min) / (Slider.Max - Slider.Min), 0, 1, 0)
 
             if Slider.Callback then 
                 Library:SafeCall(Slider.Callback, Slider.Value)
@@ -4565,10 +4526,12 @@ local Library do
             function OptionData:Toggle(State)
                 if State == "Active" then 
                     OptionData.Text:ChangeItemTheme({TextColor3 = "Accent"})
-                    OptionData.Text:Tween(nil, {TextColor3 = Library.Theme.Accent, TextTransparency = 0})
+                    OptionData.Text.Instance.TextColor3 = Library.Theme.Accent
+                    OptionData.Text.Instance.TextTransparency = 0
                 else
                     OptionData.Text:ChangeItemTheme({TextColor3 = "Text"})
-                    OptionData.Text:Tween(nil, {TextColor3 = Library.Theme.Text, TextTransparency = 0.48})
+                    OptionData.Text.Instance.TextColor3 = Library.Theme.Text
+                    OptionData.Text.Instance.TextTransparency = 0.48
                 end
             end
 
@@ -4651,7 +4614,6 @@ local Library do
             end
 
             Dropdown.IsOpen = Bool
-
             Debounce = true 
 
             if Bool then 
@@ -4662,37 +4624,11 @@ local Library do
             else
                 Items["Open"].Instance.Text = "+"
                 Items["Open"].Instance.Position = UDim2New(0, -4, 0, -1)
+                Items["OptionHolder"].Instance.Visible = false
+                Items["OptionHolder"].Instance.ZIndex = 1
             end
 
-            local Descendants = Items["OptionHolder"].Instance:GetDescendants()
-            TableInsert(Descendants, Items["OptionHolder"].Instance)
-
-            local NewTween
-            for Index, Value in Descendants do 
-                local ValueIndex = Library:GetTransparencyPropertyFromItem(Value)
-
-                if not ValueIndex then 
-                    continue
-                end
-
-                if not StringFind(Value.ClassName, "UI") then 
-                    Value.ZIndex = Bool and 15 or 1
-                end
-
-                if type(ValueIndex) == "table" then
-                    for _, Property in ValueIndex do 
-                        NewTween = Library:FadeItem(Value, Property, Bool, Dropdown.Window.FadeSpeed)
-                    end
-                else
-                    NewTween = Library:FadeItem(Value, ValueIndex, Bool, Dropdown.Window.FadeSpeed)
-                end
-            end
-
-            Library:Connect(NewTween.Tween.Completed, function()
-                Debounce = false
-                Items["OptionHolder"].Instance.Visible = Bool
-                Items["OptionHolder"].Instance.ZIndex = Bool and 15 or 1
-            end)
+            Debounce = false
         end
 
         for Index, Value in Dropdown.Items do 
@@ -4931,12 +4867,12 @@ local Library do
             }):AddToTheme({Color = "Text Border"})
 
             Items["Background"]:OnHover(function()
-                Items["Background"]:Tween(nil, {BackgroundColor3 = Library.Theme["Hovered Element"]})
+                Items["Background"].Instance.BackgroundColor3 = Library.Theme["Hovered Element"]
                 Items["Background"]:ChangeItemTheme({BackgroundColor3 = "Hovered Element", BorderColor3 = "Border"})
             end)
 
             Items["Background"]:OnHoverLeave(function()
-                Items["Background"]:Tween(nil, {BackgroundColor3 = Library.Theme["Element"]})
+                Items["Background"].Instance.BackgroundColor3 = Library.Theme["Element"]
                 Items["Background"]:ChangeItemTheme({BackgroundColor3 = "Element", BorderColor3 = "Border"})
             end)
         end
@@ -4953,7 +4889,7 @@ local Library do
             Textbox.Value = Value
             
             Items["Inline"].Instance.Text = Textbox.Value
-            Items["Inline"]:Tween(nil, {TextColor3 = Library.Theme.Text})
+            Items["Inline"].Instance.TextColor3 = Library.Theme.Text
             Items["Inline"]:ChangeItemTheme({TextColor3 = "Text"})
 
             Library.Flags[Textbox.Flag] = Textbox.Value
@@ -4965,12 +4901,12 @@ local Library do
 
         Items["Inline"]:Connect("Focused", function()
             Items["Inline"]:ChangeItemTheme({TextColor3 = "Accent"})
-            Items["Inline"]:Tween(nil, {TextColor3 = Library.Theme.Accent})
+            Items["Inline"].Instance.TextColor3 = Library.Theme.Accent
         end)
 
         Items["Inline"]:Connect("FocusLost", function()
             Items["Inline"]:ChangeItemTheme({TextColor3 = "Text"})
-            Items["Inline"]:Tween(nil, {TextColor3 = Library.Theme.Text})
+            Items["Inline"].Instance.TextColor3 = Library.Theme.Text
 
             Textbox:Set(Items["Inline"].Instance.Text)
         end)
@@ -5177,10 +5113,12 @@ local Library do
             function OptionData:Toggle(State)
                 if State == "Active" then 
                     OptionData.Text:ChangeItemTheme({TextColor3 = "Accent"})
-                    OptionData.Text:Tween(nil, {TextColor3 = Library.Theme.Accent, TextTransparency = 0})
+                    OptionData.Text.Instance.TextColor3 = Library.Theme.Accent
+                    OptionData.Text.Instance.TextTransparency = 0
                 else
                     OptionData.Text:ChangeItemTheme({TextColor3 = "Text"})
-                    OptionData.Text:Tween(nil, {TextColor3 = Library.Theme.Text, TextTransparency = 0.48})
+                    OptionData.Text.Instance.TextColor3 = Library.Theme.Text
+                    OptionData.Text.Instance.TextTransparency = 0.48
                 end
             end
 
