@@ -852,8 +852,8 @@ local Library do
             [Property] = Visibility and OldTransparency or 1
         }, true)
 
-        Library:Connect(NewTween.Tween.Completed, function()
-            if not Visibility then 
+        NewTween.Tween.Completed:Once(function()
+            if not Visibility then
                 task.wait()
                 Item[Property] = OldTransparency
             end
@@ -1154,15 +1154,24 @@ local Library do
         end
 
         -- Resolves all dynamic tokens in the format string
-        local function ResolveWatermarkText(fmt)
-            local player = LocalPlayer
-            local gameName = "Unknown"
-            local placeId = tostring(game.PlaceId)
+        local CachedGameName
+        local function ResolveGameName()
+            if CachedGameName ~= nil then
+                return CachedGameName
+            end
 
             local success, result = pcall(function()
                 return game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name
             end)
-            if success then gameName = result end
+
+            CachedGameName = (success and type(result) == "string") and result or "Unknown"
+            return CachedGameName
+        end
+
+        local function ResolveWatermarkText(fmt)
+            local player = LocalPlayer
+            local gameName = ResolveGameName()
+            local placeId = tostring(game.PlaceId)
 
             -- Ping
             local ping = 0
@@ -2542,7 +2551,7 @@ local Library do
         }
 
         local Items = { } do 
-            Items["MainFrame"] = Instances:Create("Frame", {
+            Items["MainFrame"] = Instances:Create("CanvasGroup", {
                 Parent = Library.Holder.Instance,
                 AnchorPoint = Vector2New(0, 0),
                 Name = "\0",
@@ -2730,42 +2739,38 @@ local Library do
         local Debounce = false
 
         function Window:SetOpen(Bool)
-            if Debounce then 
-                return 
+            if Debounce then
+                return
             end
 
             Window.IsOpen = Bool
 
-            Debounce = true 
+            Debounce = true
 
-            if Bool then 
-                Items["MainFrame"].Instance.Visible = true
+            local MainFrame = Items["MainFrame"].Instance
+
+            if Bool then
+                MainFrame.Visible = true
+                MainFrame.GroupTransparency = 1
+                MainFrame.BorderSizePixel = 0
             end
 
-            local Descendants = Items["MainFrame"].Instance:GetDescendants()
-            TableInsert(Descendants, Items["MainFrame"].Instance)
+            local FadeTween = TweenService:Create(
+                MainFrame,
+                TweenInfo.new(Window.FadeSpeed, Library.Tween.Style, Library.Tween.Direction),
+                {
+                    GroupTransparency = Bool and 0 or 1,
+                    BorderSizePixel = Bool and 2 or 0
+                }
+            )
 
-            local NewTween
-            for Index, Value in Descendants do 
-                local ValueIndex = Library:GetTransparencyPropertyFromItem(Value)
-
-                if not ValueIndex then 
-                    continue
-                end
-
-                if type(ValueIndex) == "table" then
-                    for _, Property in ValueIndex do 
-                        NewTween = Library:FadeItem(Value, Property, Bool, Window.FadeSpeed)
-                    end
-                else
-                    NewTween = Library:FadeItem(Value, ValueIndex, Bool, Window.FadeSpeed)
-                end
-            end
-
-            Library:Connect(NewTween.Tween.Completed, function()
+            FadeTween.Completed:Once(function()
                 Debounce = false
-                Items["MainFrame"].Instance.Visible = Bool
+                MainFrame.Visible = Bool
+                MainFrame.BorderSizePixel = Bool and 2 or 0
             end)
+
+            FadeTween:Play()
         end
 
         Library:Connect(UserInputService.InputBegan, function(Input)
