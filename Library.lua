@@ -1,3 +1,159 @@
+--[[
+    Made by samet
+
+    Assign different flags to each element to prevent from configs overriding eachother
+    Example script is at the bottom
+
+    Documentation:
+    function Library:Window(Data: table
+        Name/name: string,
+        Size/size: UDim2
+    )
+
+    function Window:Page(Data: table
+        Name/name: string,
+        Columns/columns: number,
+        SubTabs/subtabs: boolean
+    )
+
+    function Page:SubPage(Data: table
+        Icon/icon: string,
+        Columns/columns: number
+    )
+
+    function Page:Section(Data: table
+        Name/name: string,
+        Side/side: number,
+    )
+
+    function Page:MultiSection(Data: table
+        Sections/sections: table,
+        Side/side: number
+    )
+
+    function Page:ScrollableSection(Data: table
+        Name/name: string,
+        Side/side: number,
+        Size/size: number
+    )
+
+    function Section:Divider()
+
+    function Section:Label(Data: table
+        Name/name: string,
+        Alignment/alignment: string
+    )
+
+    function Section:Toggle(Data: table
+        Name/name: string,
+        Default/default: boolean,
+        Flag/flag: string,
+        Callback/callback: function
+    )
+
+    function Section:Button(Data: table
+        Name/name: string,
+        Callback/callback: function
+    )
+
+    function Section:Slider(Data: table
+        Name/name: string,
+        Min/min: number,
+        Max/max: number,
+        Decimals/decimals: number,
+        Default/default: number,
+        Suffix/suffix: string,
+        Flag/flag: string,
+        Callback/callback: function
+    )
+
+    function Section:Textbox(Data: table
+        Name/name: string,
+        Default/default: string,
+        Placeholder/placeholder: string,
+        Flag/flag: string,
+        Callback/callback: function
+    )
+
+    function Section:Dropdown(Data: table
+        Name/name: string,
+        Items/items: table,
+        Default/default: string,
+        Flag/flag: string,
+        Multi/multi: boolean,
+        Callback/callback: function
+    )
+
+    function Section:Listbox(Data: table
+        Size/size: number,
+        Items/items: table,
+        Default/default: string,
+        Multi/multi: boolean,
+        Flag/flag: string,
+        Callback/callback: function
+    )
+
+    function Label:Keybind(Data: table
+        Name/name: string,
+        Mode/mode: string,
+        Default/default: EnumItem,
+        Flag/flag: string,
+        Callback/callback: function
+    )
+
+    function Label:Colorpicker(Data: table
+        Name/name: string,
+        Default/default: Color3,
+        Alpha/alpha: boolean,
+        Flag/flag: string,
+        Callback/callback: function
+    )
+
+    function Toggle:Colorpicker(Data: table
+        Name/name: string,
+        Default/default: Color3,
+        Alpha/alpha: boolean,
+        Flag/flag: string,
+        Callback/callback: function
+    )
+
+    function Toggle:Keybind(Data: table
+        Name/name: string,
+        Mode/mode: string,
+        Default/default: EnumItem,
+        Flag/flag: string,
+        Callback/callback: function
+    )
+
+    function Sections:Textbox(Data: table
+        Name/name: string,
+        Default/default: string,
+        Placeholder/placeholder: string,
+        Flag/flag: string,
+        Callback/callback: function
+    )
+
+    function Library:Watermark(Format: string)
+        -- Format supports dynamic tokens that auto-update every second:
+        --   {name}     - player DisplayName
+        --   {username} - @username
+        --   {game}     - game name (via MarketplaceService)
+        --   {gameid}   - game PlaceId
+        --   {ping}     - network ping in ms
+        --   {fps}      - current FPS
+        --   {time}     - HH:MM:SS
+        --   {date}     - DD/MM/YYYY
+        -- Example: Library:Watermark("{game} | {name} | Ping: {ping}ms | {fps} FPS | {time}")
+        --
+        -- Methods:
+        --   Watermark:SetFormat(fmt: string)          -- change format at runtime
+        --   Watermark:SetText(text: string)           -- set static text (no tokens)
+        --   Watermark:SetUpdateInterval(n: number)    -- change refresh rate (default 1s)
+        --   Watermark:SetVisibility(bool: boolean)    -- show/hide
+
+    function Library:Notification(Text: string, Duration: number, Color: Color3, Icon: table)
+    function Library:KeybindList()
+]]
 
 local LoadingTick = os.clock()
 
@@ -725,8 +881,13 @@ local Library do
 
     Library.Thread = function(self, Function)
         local NewThread = coroutine.create(Function)
-        coroutine.resume(NewThread)
+        
+        coroutine.wrap(function()
+            coroutine.resume(NewThread)
+        end)()
+
         TableInsert(self.Threads, NewThread)
+
         return NewThread
     end
     
@@ -744,19 +905,24 @@ local Library do
     end
 
     Library.Connect = function(self, Event, Callback, Name)
-        self.UnnamedConnections = self.UnnamedConnections + 1
-        Name = Name or ("C_" .. self.UnnamedConnections)
+        Name = Name or StringFormat("Connection_%s_%s", self.UnnamedConnections + 1, HttpService:GenerateGUID(false))
 
         local NewConnection = {
             Event = Event,
             Callback = Callback,
             Name = Name,
-            Connection = Event:Connect(Callback)
+            Connection = nil
         }
+
+        Library:Thread(function()
+            NewConnection.Connection = Event:Connect(Callback)
+        end)
 
         TableInsert(self.Connections, NewConnection)
         return NewConnection
     end
+
+    Library.Disconnect = function(self, Name)
         for _, Connection in self.Connections do 
             if Connection.Name == Name then
                 Connection.Connection:Disconnect()
@@ -766,8 +932,8 @@ local Library do
     end
 
     Library.NextFlag = function(self)
-        self.UnnamedFlags = self.UnnamedFlags + 1
-        return "Flag_" .. self.UnnamedFlags
+        local FlagNumber = self.UnnamedFlags + 1
+        return StringFormat("Flag Number %s %s", FlagNumber, HttpService:GenerateGUID(false))
     end
 
     Library.AddToTheme = function(self, Item, Properties)
@@ -792,7 +958,11 @@ local Library do
         local Config = { } 
 
         local Success, Result = Library:SafeCall(function()
-            for Index, Value in Library.Flags do 
+            for Index, Value in Library.Flags do
+                if Index == "Configs List" or Index == "Config Name" then
+                    continue
+                end
+
                 if type(Value) == "table" and Value.Key then
                     Config[Index] = {Key = tostring(Value.Key), Mode = Value.Mode}
                 elseif type(Value) == "table" and Value.Color then
@@ -840,36 +1010,30 @@ local Library do
     end
 
     Library.SaveConfig = function(self, Config)
-        if isfile(Library.Folders.Directory .. "/" .. Library.Folders.Configs .. "/" .. Config .. ".json") then
-            writefile(Library.Folders.Directory .. "/" .. Library.Folders.Configs .. "/" .. Config .. ".json", Library:GetConfig())
-            Library:Notification("Saved config " .. Config .. ".json", 5, Color3.fromRGB(0, 255, 0))
-        end
+        local Name = StringGSub(tostring(Config), "%.json$", "")
+
+        writefile(Library.Folders.Configs .. "/" .. Name .. ".json", Library:GetConfig())
+        Library:Notification("Saved config " .. Name .. ".json", 5, Color3.fromRGB(0, 255, 0))
     end
 
     Library.RefreshConfigsList = function(self, Element)
-        local CurrentList = { }
         local List = { }
 
-        local ConfigFolderName = StringGSub(Library.Folders.Configs, Library.Folders.Directory .. "/", "")
+        local Success, Files = pcall(listfiles, Library.Folders.Configs)
 
-        for Index, Value in listfiles(Library.Folders.Configs) do
-            local FileName = StringGSub(Value, Library.Folders.Directory .. "\\" .. ConfigFolderName .. "\\", "")
-            List[Index] = FileName
-        end
+        if Success and type(Files) == "table" then
+            for _, Value in Files do
+                local FileName = StringGSub(tostring(Value), "\\", "/")
+                FileName = FileName:match("([^/]+)$") or FileName
 
-        local IsNew = #List ~= CurrentList
-
-        if not IsNew then
-            for Index = 1, #List do
-                if List[Index] ~= CurrentList[Index] then
-                    IsNew = true
-                    break
+                if FileName:sub(-5):lower() == ".json" then
+                    table.insert(List, FileName)
                 end
             end
-        else
-            CurrentList = List
-            Element:Refresh(CurrentList)
         end
+
+        table.sort(List)
+        Element:Refresh(List)
     end
 
     Library.ChangeItemTheme = function(self, Item, Properties)
@@ -887,8 +1051,6 @@ local Library do
         self.Theme[Theme] = Color
 
         for _, Item in self.ThemeItems do
-            local val = Item.Properties[next(Item.Properties)]
-            -- fast path: only iterate items that reference this theme key
             for Property, Value in Item.Properties do
                 if type(Value) == "string" and Value == Theme then
                     Item.Item[Property] = Color
@@ -2573,8 +2735,37 @@ local Library do
             end
 
             Window.IsOpen = Bool
-            Items["MainFrame"].Instance.Visible = Bool
-            Debounce = false
+
+            Debounce = true 
+
+            if Bool then 
+                Items["MainFrame"].Instance.Visible = true
+            end
+
+            local Descendants = Items["MainFrame"].Instance:GetDescendants()
+            TableInsert(Descendants, Items["MainFrame"].Instance)
+
+            local NewTween
+            for Index, Value in Descendants do 
+                local ValueIndex = Library:GetTransparencyPropertyFromItem(Value)
+
+                if not ValueIndex then 
+                    continue
+                end
+
+                if type(ValueIndex) == "table" then
+                    for _, Property in ValueIndex do 
+                        NewTween = Library:FadeItem(Value, Property, Bool, Window.FadeSpeed)
+                    end
+                else
+                    NewTween = Library:FadeItem(Value, ValueIndex, Bool, Window.FadeSpeed)
+                end
+            end
+
+            Library:Connect(NewTween.Tween.Completed, function()
+                Debounce = false
+                Items["MainFrame"].Instance.Visible = Bool
+            end)
         end
 
         Library:Connect(UserInputService.InputBegan, function(Input)
@@ -3664,7 +3855,7 @@ local Library do
                     return 
                 end
 
-                Items["Indicator"].Instance.BackgroundColor3 = Library.Theme["Hovered Element"]
+                Items["Indicator"]:Tween(nil, {BackgroundColor3 = Library.Theme["Hovered Element"]})
                 Items["Indicator"]:ChangeItemTheme({BackgroundColor3 = "Hovered Element", BorderColor3 = "Border"})
             end)
 
@@ -3673,7 +3864,7 @@ local Library do
                     return 
                 end
 
-                Items["Indicator"].Instance.BackgroundColor3 = Library.Theme["Element"]
+                Items["Indicator"]:Tween(nil, {BackgroundColor3 = Library.Theme["Element"]})
                 Items["Indicator"]:ChangeItemTheme({BackgroundColor3 = "Element", BorderColor3 = "Border"})
             end)
         end
@@ -3683,18 +3874,20 @@ local Library do
         end
 
         function Toggle:Set(Bool)
-            Toggle.Value = Bool or not Toggle.Value
+            Toggle.Value = (type(Bool) == "boolean") and Bool or not Toggle.Value
 
             Library.Flags[Toggle.Flag] = Toggle.Value
 
             if Toggle.Value then 
                 Items["Indicator"]:ChangeItemTheme({BackgroundColor3 = "Accent"})
-                Items["Indicator"].Instance.BackgroundColor3 = Library.Theme.Accent
-                Items["Text"].Instance.TextTransparency = 0
+
+                Items["Indicator"]:Tween(nil, {BackgroundColor3 = Library.Theme.Accent})
+                Items["Text"]:Tween(nil, {TextTransparency = 0})
             else
                 Items["Indicator"]:ChangeItemTheme({BackgroundColor3 = "Element"})
-                Items["Indicator"].Instance.BackgroundColor3 = Library.Theme.Element
-                Items["Text"].Instance.TextTransparency = 0.48
+
+                Items["Indicator"]:Tween(nil, {BackgroundColor3 = Library.Theme.Element})
+                Items["Text"]:Tween(nil, {TextTransparency = 0.48})
             end
 
             if Toggle.Callback then 
@@ -3833,12 +4026,12 @@ local Library do
             }):AddToTheme({Color = "Text Border"})
 
             Items["Button"]:OnHover(function()
-                Items["Button"].Instance.BackgroundColor3 = Library.Theme["Hovered Element"]
+                Items["Button"]:Tween(nil, {BackgroundColor3 = Library.Theme["Hovered Element"]})
                 Items["Button"]:ChangeItemTheme({BackgroundColor3 = "Hovered Element", BorderColor3 = "Border"})
             end)
 
             Items["Button"]:OnHoverLeave(function()
-                Items["Button"].Instance.BackgroundColor3 = Library.Theme["Element"]
+                Items["Button"]:Tween(nil, {BackgroundColor3 = Library.Theme["Element"]})
                 Items["Button"]:ChangeItemTheme({BackgroundColor3 = "Element", BorderColor3 = "Border"})
             end)
         end
@@ -3846,17 +4039,19 @@ local Library do
         function Button:Press()
             Library:SafeCall(Button.Callback)
 
-            Items["Text"].Instance.TextColor3 = Library.Theme.Accent
-            Items["Button"].Instance.BackgroundColor3 = Library.Theme.Accent
             Items["Text"]:ChangeItemTheme({TextColor3 = "Accent"})
             Items["Button"]:ChangeItemTheme({BackgroundColor3 = "Accent"})
 
-            task.delay(0.1, function()
-                Items["Text"].Instance.TextColor3 = Library.Theme.Text
-                Items["Button"].Instance.BackgroundColor3 = Library.Theme.Element
-                Items["Text"]:ChangeItemTheme({TextColor3 = "Text"})
-                Items["Button"]:ChangeItemTheme({BackgroundColor3 = "Element"})
-            end)
+            Items["Text"]:Tween(nil, {TextColor3 = Library.Theme.Accent})
+            Items["Button"]:Tween(nil, {BackgroundColor3 = Library.Theme.Accent})
+
+            task.wait(0.1)
+
+            Items["Text"]:ChangeItemTheme({TextColor3 = "Text"})
+            Items["Button"]:ChangeItemTheme({BackgroundColor3 = "Element"})
+
+            Items["Text"]:Tween(nil, {TextColor3 = Library.Theme.Text})
+            Items["Button"]:Tween(nil, {BackgroundColor3 = Library.Theme.Element})
         end
 
         function Button:SetVisiblity(Bool)
@@ -3999,12 +4194,12 @@ local Library do
             end
 
             Items["RealSlider"]:OnHover(function()
-                Items["RealSlider"].Instance.BackgroundColor3 = Library.Theme["Hovered Element"]
+                Items["RealSlider"]:Tween(nil, {BackgroundColor3 = Library.Theme["Hovered Element"]})
                 Items["RealSlider"]:ChangeItemTheme({BackgroundColor3 = "Hovered Element", BorderColor3 = "Border"})
             end)
 
             Items["RealSlider"]:OnHoverLeave(function()
-                Items["RealSlider"].Instance.BackgroundColor3 = Library.Theme["Background"]
+                Items["RealSlider"]:Tween(nil, {BackgroundColor3 = Library.Theme["Background"]})
                 Items["RealSlider"]:ChangeItemTheme({BackgroundColor3 = "Background", BorderColor3 = "Border"})
             end)
         end
@@ -4020,7 +4215,7 @@ local Library do
                 Items["Value"].Instance.Text = `{Slider.Value}{Slider.Suffix}`
             end
 
-            Items["Indicator"].Instance.Size = UDim2New((Slider.Value - Slider.Min) / (Slider.Max - Slider.Min), 0, 1, 0)
+            Items["Indicator"]:Tween(TweenInfo.new(0.17, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = UDim2New((Slider.Value - Slider.Min) / (Slider.Max - Slider.Min), 0, 1, 0)})
 
             if Slider.Callback then 
                 Library:SafeCall(Slider.Callback, Slider.Value)
@@ -4246,12 +4441,12 @@ local Library do
             })
 
             Items["RealDropdown"]:OnHover(function()
-                Items["RealDropdown"].Instance.BackgroundColor3 = Library.Theme["Hovered Element"]
+                Items["RealDropdown"]:Tween(nil, {BackgroundColor3 = Library.Theme["Hovered Element"]})
                 Items["RealDropdown"]:ChangeItemTheme({BackgroundColor3 = "Hovered Element", BorderColor3 = "Border"})
             end)
 
             Items["RealDropdown"]:OnHoverLeave(function()
-                Items["RealDropdown"].Instance.BackgroundColor3 = Library.Theme["Background"]
+                Items["RealDropdown"]:Tween(nil, {BackgroundColor3 = Library.Theme["Background"]})
                 Items["RealDropdown"]:ChangeItemTheme({BackgroundColor3 = "Background", BorderColor3 = "Border"})
             end)
         end
@@ -4368,12 +4563,10 @@ local Library do
             function OptionData:Toggle(State)
                 if State == "Active" then 
                     OptionData.Text:ChangeItemTheme({TextColor3 = "Accent"})
-                    OptionData.Text.Instance.TextColor3 = Library.Theme.Accent
-                    OptionData.Text.Instance.TextTransparency = 0
+                    OptionData.Text:Tween(nil, {TextColor3 = Library.Theme.Accent, TextTransparency = 0})
                 else
                     OptionData.Text:ChangeItemTheme({TextColor3 = "Text"})
-                    OptionData.Text.Instance.TextColor3 = Library.Theme.Text
-                    OptionData.Text.Instance.TextTransparency = 0.48
+                    OptionData.Text:Tween(nil, {TextColor3 = Library.Theme.Text, TextTransparency = 0.48})
                 end
             end
 
@@ -4456,6 +4649,7 @@ local Library do
             end
 
             Dropdown.IsOpen = Bool
+
             Debounce = true 
 
             if Bool then 
@@ -4492,17 +4686,11 @@ local Library do
                 end
             end
 
-            if NewTween then
-                Library:Connect(NewTween.Tween.Completed, function()
-                    Debounce = false
-                    Items["OptionHolder"].Instance.Visible = Bool
-                    Items["OptionHolder"].Instance.ZIndex = Bool and 15 or 1
-                end)
-            else
+            Library:Connect(NewTween.Tween.Completed, function()
                 Debounce = false
                 Items["OptionHolder"].Instance.Visible = Bool
                 Items["OptionHolder"].Instance.ZIndex = Bool and 15 or 1
-            end
+            end)
         end
 
         for Index, Value in Dropdown.Items do 
@@ -4741,12 +4929,12 @@ local Library do
             }):AddToTheme({Color = "Text Border"})
 
             Items["Background"]:OnHover(function()
-                Items["Background"].Instance.BackgroundColor3 = Library.Theme["Hovered Element"]
+                Items["Background"]:Tween(nil, {BackgroundColor3 = Library.Theme["Hovered Element"]})
                 Items["Background"]:ChangeItemTheme({BackgroundColor3 = "Hovered Element", BorderColor3 = "Border"})
             end)
 
             Items["Background"]:OnHoverLeave(function()
-                Items["Background"].Instance.BackgroundColor3 = Library.Theme["Element"]
+                Items["Background"]:Tween(nil, {BackgroundColor3 = Library.Theme["Element"]})
                 Items["Background"]:ChangeItemTheme({BackgroundColor3 = "Element", BorderColor3 = "Border"})
             end)
         end
@@ -4763,7 +4951,7 @@ local Library do
             Textbox.Value = Value
             
             Items["Inline"].Instance.Text = Textbox.Value
-            Items["Inline"].Instance.TextColor3 = Library.Theme.Text
+            Items["Inline"]:Tween(nil, {TextColor3 = Library.Theme.Text})
             Items["Inline"]:ChangeItemTheme({TextColor3 = "Text"})
 
             Library.Flags[Textbox.Flag] = Textbox.Value
@@ -4775,12 +4963,12 @@ local Library do
 
         Items["Inline"]:Connect("Focused", function()
             Items["Inline"]:ChangeItemTheme({TextColor3 = "Accent"})
-            Items["Inline"].Instance.TextColor3 = Library.Theme.Accent
+            Items["Inline"]:Tween(nil, {TextColor3 = Library.Theme.Accent})
         end)
 
         Items["Inline"]:Connect("FocusLost", function()
             Items["Inline"]:ChangeItemTheme({TextColor3 = "Text"})
-            Items["Inline"].Instance.TextColor3 = Library.Theme.Text
+            Items["Inline"]:Tween(nil, {TextColor3 = Library.Theme.Text})
 
             Textbox:Set(Items["Inline"].Instance.Text)
         end)
@@ -4987,12 +5175,10 @@ local Library do
             function OptionData:Toggle(State)
                 if State == "Active" then 
                     OptionData.Text:ChangeItemTheme({TextColor3 = "Accent"})
-                    OptionData.Text.Instance.TextColor3 = Library.Theme.Accent
-                    OptionData.Text.Instance.TextTransparency = 0
+                    OptionData.Text:Tween(nil, {TextColor3 = Library.Theme.Accent, TextTransparency = 0})
                 else
                     OptionData.Text:ChangeItemTheme({TextColor3 = "Text"})
-                    OptionData.Text.Instance.TextColor3 = Library.Theme.Text
-                    OptionData.Text.Instance.TextTransparency = 0.48
+                    OptionData.Text:Tween(nil, {TextColor3 = Library.Theme.Text, TextTransparency = 0.48})
                 end
             end
 
@@ -5118,6 +5304,13 @@ local Library do
             end})
         
             ConfigsSection:Button({Name = "Create Config", Callback = function()
+                ConfigName = StringGSub(tostring(ConfigName or ""), "[%/%\\%.]", "")
+
+                if ConfigName == "" then
+                    Library:Notification("Enter a config name first", 3, Color3.FromR(255, 0, 0))
+                    return
+                end
+
                 if not isfile(Library.Folders.Configs .. "/" .. ConfigName .. ".json") then
                     writefile(Library.Folders.Configs .. "/" .. ConfigName .. ".json", Library:GetConfig())
         
