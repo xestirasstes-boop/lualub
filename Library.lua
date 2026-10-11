@@ -1,159 +1,3 @@
---[[
-    Made by samet
-
-    Assign different flags to each element to prevent from configs overriding eachother
-    Example script is at the bottom
-
-    Documentation:
-    function Library:Window(Data: table
-        Name/name: string,
-        Size/size: UDim2
-    )
-
-    function Window:Page(Data: table
-        Name/name: string,
-        Columns/columns: number,
-        SubTabs/subtabs: boolean
-    )
-
-    function Page:SubPage(Data: table
-        Icon/icon: string,
-        Columns/columns: number
-    )
-
-    function Page:Section(Data: table
-        Name/name: string,
-        Side/side: number,
-    )
-
-    function Page:MultiSection(Data: table
-        Sections/sections: table,
-        Side/side: number
-    )
-
-    function Page:ScrollableSection(Data: table
-        Name/name: string,
-        Side/side: number,
-        Size/size: number
-    )
-
-    function Section:Divider()
-
-    function Section:Label(Data: table
-        Name/name: string,
-        Alignment/alignment: string
-    )
-
-    function Section:Toggle(Data: table
-        Name/name: string,
-        Default/default: boolean,
-        Flag/flag: string,
-        Callback/callback: function
-    )
-
-    function Section:Button(Data: table
-        Name/name: string,
-        Callback/callback: function
-    )
-
-    function Section:Slider(Data: table
-        Name/name: string,
-        Min/min: number,
-        Max/max: number,
-        Decimals/decimals: number,
-        Default/default: number,
-        Suffix/suffix: string,
-        Flag/flag: string,
-        Callback/callback: function
-    )
-
-    function Section:Textbox(Data: table
-        Name/name: string,
-        Default/default: string,
-        Placeholder/placeholder: string,
-        Flag/flag: string,
-        Callback/callback: function
-    )
-
-    function Section:Dropdown(Data: table
-        Name/name: string,
-        Items/items: table,
-        Default/default: string,
-        Flag/flag: string,
-        Multi/multi: boolean,
-        Callback/callback: function
-    )
-
-    function Section:Listbox(Data: table
-        Size/size: number,
-        Items/items: table,
-        Default/default: string,
-        Multi/multi: boolean,
-        Flag/flag: string,
-        Callback/callback: function
-    )
-
-    function Label:Keybind(Data: table
-        Name/name: string,
-        Mode/mode: string,
-        Default/default: EnumItem,
-        Flag/flag: string,
-        Callback/callback: function
-    )
-
-    function Label:Colorpicker(Data: table
-        Name/name: string,
-        Default/default: Color3,
-        Alpha/alpha: boolean,
-        Flag/flag: string,
-        Callback/callback: function
-    )
-
-    function Toggle:Colorpicker(Data: table
-        Name/name: string,
-        Default/default: Color3,
-        Alpha/alpha: boolean,
-        Flag/flag: string,
-        Callback/callback: function
-    )
-
-    function Toggle:Keybind(Data: table
-        Name/name: string,
-        Mode/mode: string,
-        Default/default: EnumItem,
-        Flag/flag: string,
-        Callback/callback: function
-    )
-
-    function Sections:Textbox(Data: table
-        Name/name: string,
-        Default/default: string,
-        Placeholder/placeholder: string,
-        Flag/flag: string,
-        Callback/callback: function
-    )
-
-    function Library:Watermark(Format: string)
-        -- Format supports dynamic tokens that auto-update every second:
-        --   {name}     - player DisplayName
-        --   {username} - @username
-        --   {game}     - game name (via MarketplaceService)
-        --   {gameid}   - game PlaceId
-        --   {ping}     - network ping in ms
-        --   {fps}      - current FPS
-        --   {time}     - HH:MM:SS
-        --   {date}     - DD/MM/YYYY
-        -- Example: Library:Watermark("{game} | {name} | Ping: {ping}ms | {fps} FPS | {time}")
-        --
-        -- Methods:
-        --   Watermark:SetFormat(fmt: string)          -- change format at runtime
-        --   Watermark:SetText(text: string)           -- set static text (no tokens)
-        --   Watermark:SetUpdateInterval(n: number)    -- change refresh rate (default 1s)
-        --   Watermark:SetVisibility(bool: boolean)    -- show/hide
-
-    function Library:Notification(Text: string, Duration: number, Color: Color3, Icon: table)
-    function Library:KeybindList()
-]]
 
 local LoadingTick = os.clock()
 
@@ -240,7 +84,7 @@ local Library do
             Assets = "scriptname/Assets"
         },
 
-        Images = { -- you're welcome to reupload the images and replace it with your own links
+        Images = {
             ["Saturation"] = {"Saturation.png", "https://github.com/sametexe001/images/blob/main/saturation.png?raw=true" },
             ["Value"] = { "Value.png", "https://github.com/sametexe001/images/blob/main/value.png?raw=true" },
             ["Hue"] = { "Hue.png", "https://github.com/sametexe001/images/blob/main/hue.png?raw=true" },
@@ -249,7 +93,6 @@ local Library do
             ["Resize"] = { "Resize.png", "https://github.com/sametexe001/images/blob/main/resize.png?raw=true" },
         },
 
-        -- Ignore below
         Pages = { },
         Sections = { },
         Connections = { },
@@ -348,7 +191,6 @@ local Library do
         ["RightAlt"]          = "RightAlt"
     }
 
-    -- Files 
     for _, FileName in Library.Folders do
         if not isfolder(FileName) then
             makefolder(FileName)
@@ -657,7 +499,6 @@ local Library do
 
                 StartMouse = UserInputService:GetMouseLocation()
 
-                -- store offsets, not absolute screen pos
                 StartPosition = Vector2New(Gui.Position.X.Offset, Gui.Position.Y.Offset)
                 StartSize = Vector2New(Gui.Size.X.Offset, Gui.Size.Y.Offset)
                 
@@ -867,8 +708,8 @@ local Library do
             Value.Connection:Disconnect()
         end
 
-        for Index, Value in self.Threads do 
-            coroutine.close(Value)
+        for Index, Value in self.Threads do
+            pcall(coroutine.close, Value)
         end
 
         if self.Holder then 
@@ -1071,19 +912,8 @@ local Library do
     Library.Watermark = function(self, Name)
         local Watermark = { }
 
-        -- Format string for dynamic watermark text.
-        -- Supported tokens:
-        --   {name}    - player display name
-        --   {username}- player username (@name)
-        --   {game}    - game name
-        --   {gameid}  - game PlaceId
-        --   {ping}    - current ping (ms)
-        --   {fps}     - current FPS
-        --   {time}    - current time (HH:MM:SS)
-        --   {date}    - current date (DD/MM/YYYY)
-        -- Example: Library:Watermark("{game} | {name} | {ping}ms | {fps} fps | {time}")
         Watermark.Format = Name
-        Watermark.UpdateInterval = 1 -- seconds between text refresh
+        Watermark.UpdateInterval = 1
 
         local Items = { } do 
             Items["Watermark"] = Instances:Create("Frame", {
@@ -1153,7 +983,6 @@ local Library do
             })             
         end
 
-        -- Resolves all dynamic tokens in the format string
         local CachedGameName
         local function ResolveGameName()
             if CachedGameName ~= nil then
@@ -1173,17 +1002,14 @@ local Library do
             local gameName = ResolveGameName()
             local placeId = tostring(game.PlaceId)
 
-            -- Ping
             local ping = 0
             local statsOk, statsResult = pcall(function()
                 return game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValue()
             end)
             if statsOk then ping = MathFloor(statsResult) end
 
-            -- FPS (averaged over last frame)
             local fps = MathFloor(1 / RunService.Heartbeat:Wait())
 
-            -- Time
             local t = os.date("*t")
             local timeStr = StringFormat("%02d:%02d:%02d", t.hour, t.min, t.sec)
             local dateStr = StringFormat("%02d/%02d/%04d", t.day, t.month, t.year)
@@ -1204,7 +1030,6 @@ local Library do
             return resolved
         end
 
-        -- Start auto-update loop
         local UpdateThread
         local function StartUpdateLoop()
             if UpdateThread then
@@ -1228,20 +1053,16 @@ local Library do
             Items["Watermark"].Instance.Visible = Bool
         end
 
-        -- Change the format string at runtime.
-        -- Supports tokens: {name} {username} {game} {gameid} {ping} {fps} {time} {date}
         function Watermark:SetFormat(fmt)
             Watermark.Format = fmt
         end
 
-        -- Directly set a static text (no token replacement)
         function Watermark:SetText(text)
             if Items["Title"] and Items["Title"].Instance then
                 Items["Title"].Instance.Text = text
             end
         end
 
-        -- Change update speed (seconds). Default = 1.
         function Watermark:SetUpdateInterval(interval)
             Watermark.UpdateInterval = interval
         end
@@ -2676,7 +2497,6 @@ local Library do
                     BackgroundColor3 = Library.Theme.Background
                 })  Items["FloatingButton"]:AddToTheme({BackgroundColor3 = "Background"})
 
-                --
                 local Gui = Items["FloatingButton"].Instance
 
                 local Dragging = false 
@@ -4416,10 +4236,9 @@ local Library do
                 ClipsDescendants = true
             })  Items["OptionHolder"]:AddToTheme({BackgroundColor3 = "Inline", BorderColor3 = "Border"})
 
-            -- update scroll height dynamically
             local function UpdateDropdownHeight()
                 local contentHeight = Items["OptionHolder"].Instance.AbsoluteCanvasSize.Y
-                local maxHeight = 90 -- max 6 items visible (~15px each)
+                local maxHeight = 90
                 local newHeight = math.min(contentHeight, maxHeight)
                 if newHeight < 1 then newHeight = 0 end
                 Items["OptionHolder"].Instance.Size = UDim2New(1, 0, 0, newHeight)
@@ -5252,7 +5071,7 @@ local Library do
     Library.CreateSettingsPage = function(self, Window, Watermark, KeybindList, Options)
         local SettingsTab = Window:Page({Name = "Settings", Columns = 2, Subtabs = false})
 
-        do -- Settings Tab
+        do
             local SettingsSection = SettingsTab:Section({Name = "Settings", Side = 2})
             local ConfigsSection = SettingsTab:Section({Name = "Profiles", Side = 1})
         
